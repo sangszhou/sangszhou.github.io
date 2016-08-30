@@ -106,5 +106,5 @@ comments_provider: disqus
 # ---------------- #
 #      Datas       #
 # ---------------- #
-skill_software_keywords: [Scala, Java, Design Patterns]
-skill_mobile_app_keywords: [Android, Reverse Engineering]
+skill_software_keywords: [Scala, Java, Shell, Design Patterns]
+backend: [Akka, Spray, Spring, Elasticsearch, Kafka]

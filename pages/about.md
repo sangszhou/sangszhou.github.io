@@ -17,7 +17,7 @@ Software Engineer in cisco, Shanghai
 
 ## 联系
 
-* GitHub：[@mzlogin](https://github.com/sangszhou)
+* GitHub：[@xinszhou](https://github.com/sangszhou)
 
 ## Skill Keywords
 
@@ -28,9 +28,9 @@ Software Engineer in cisco, Shanghai
     {% endfor %}
 </div>
 
-#### Mobile Developer Keywords
+#### Web backend Developer
 <div class="btn-inline">
-    {% for keyword in site.skill_mobile_app_keywords %}
+    {% for keyword in site.backend %}
     <button class="btn btn-outline" type="button">{{ keyword }}</button>
     {% endfor %}
 </div>
