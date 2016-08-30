@@ -25,16 +25,17 @@ public void execute(Runnable command)
 		reject(command)
 ```
 
-execute 分为三种情况
-- If fewer than corePoolSize threads are running, try to start a new thread with th given command as its first task.
-- If a task can be successfully queued, then we still need to double check whether we should have added a thread.
-- If we cannot queue task, then we try to add a new thread.
+execute 分为三种情况:
 
-execute 和 addworker 应该放到一起看，因为 execute 对 addWorker 返回状态的含义有假设，比如当 addWorker 返回成功时，线程池的状态肯定是好的，当 addWorker 失败时，要么 worker 超过了 capacity, 要么线程池状态不对，这两种结果下都要 reject command
+1. If fewer than corePoolSize threads are running, try to start a new thread with th given command as its first task.
+2. If a task can be successfully queued, then we still need to double check whether we should have added a thread.
+3. If we cannot queue task, then we try to add a new thread.
 
-`addWorker` 是核心函数
+execute 和 addworker 应该放到一起看，因为 execute 知道 addWorker 返回状态的含义，比如当 addWorker 返回成功时，线程池的状态肯定是好的，当 addWorker 失败时，要么 worker 超过了 capacity, 要么线程池状态不对，这两种结果下都要 reject command
 
-```scala
+`addWorker` 是核心函数, 它在线程池中添加一个新的 worker, 线程的创建 delegate 给 threadFactory, 当创建的线程返回 null 时，说明系统出错, 此时返回 false.
+
+```java
 boolean addWorker(Runnable firstTask, boolean core)
 	retry:
 	for(;;)
@@ -68,7 +69,7 @@ boolean addWorker(Runnable firstTask, boolean core)
 
 ready to shutdown 是靠 state == shutdown && (state == shutdown && firstTask == null && !workerQueue.isEmpty) 决定的
 
-```
+```java
 Worker extends AQS with Runnable //AQS 可能是为了显示当前 worker 的状态
 Worker.run() { runWorker(this) }
 
@@ -81,12 +82,13 @@ void runWorker(Worker w)
 			try
 				task.run
 			finally
-				afterExecution(task, exception)		finally
-				w.unlock
+				afterExecution(task, exception)		
+		finally
+			w.unlock
 ```
 getTask 是从 workQueue 中获取数据，如果拿不到就返回 null 返回 null 时要么超时，要么 threadpool 状态异常
 
-```
+```java
 Runnable getTask
 	boolean timeout = false; // Did last pool timeout?
 	retry:
@@ -111,7 +113,7 @@ Runnable getTask
 
 处理 Shutdown, Exception 等逻辑
 
-```
+```java
 void processWorkerExit(Worker w, boolean completedAbruptly)
 	if(completedAbruptly) decrementWorkerCount
 	mainLock.lock
@@ -133,7 +135,7 @@ void processWorkerExit(Worker w, boolean completedAbruptly)
 
 退出有两种，第一种是 shutdown 第二种是 shutdownRightNow
 
-```
+```java
 void shutdown()
 	mainLock.lock
 	try
@@ -151,7 +153,7 @@ advanceRunState(SHUTDOWN) 是一个循环 CAS，置 state 为 shutdown
 interruptIdleWorkers 遍历所有的 worker 把那些不在 lock 状态的线程 interrupt
 onShutdown 肯定就是留作扩展的函数的了
 
-```
+```java
 List<Runnable> shutdownNow
 	mainLock.lock
 	try
@@ -179,7 +181,7 @@ List<Runnable> drainQueue
 tryTerminate 在很多函数中被调用
 transition to TERMINATED state if either (SHUTDOWN and pool and queue is empty) or (STOP and pool empty).  This method must be called following any action that might make termination possible -- reducing worker count or removing taks from the queue during shutdown.
 
-```
+```java
 void tryTerminate
 	for( ; ;)
 		if(isRunning || runStateAtLeast(TIDYING) || runState == SHUTDOWN && !workerQueue.isEmpty())
@@ -206,7 +208,7 @@ termination.signalAll, 什么时候线程被挂在这个 condition 上的？
 `purge`
 Tries to remove from the worker queue all tasks that have been cancelled.
 
-```
+```java
 void purge
 	BlockingQueue<Runnable> q = workQueue
 	Iterator<Runnable> it = q.iterator
