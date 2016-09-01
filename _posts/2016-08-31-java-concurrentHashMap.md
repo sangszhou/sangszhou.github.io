@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Java ConcurrentHashMap 分析"
-date:   "2016-08-30 10:50:00"
+date:   "2016-08-31 10:50:00"
 categories: Java
 keywords: Java, Concurrent, map
 ---
@@ -171,5 +171,101 @@ void rehash(HashEntry node)
 
 哨兵的身后的节点，hash 值不变，这意味着这些节点都将存在于同一个 new index 下，这样能够减少一定数量的数据拷贝。
 其实，这种优化不一定有效，只是做个尝试，为了这些优化多循环了一遍链表，不知道是不是合适。
+
+## Get 流程
+
+```java
+V get(Object key)
+  Segment s
+  HashEntry[] tab
+  int h = hash(key)
+  long u =  ((h >>> segmentShift) & segmentMask) << SSHIFT + SBASE
+  if((s = UNSAFE.getObjectVolatile(segments, u)) != null && s.table != null)
+    for(e = UNSAFE.getObjectVolatile(table, Mask & h); e != null; e = e.next)
+      if(k.key == key || (e.hash == h && key equals e.key))
+        return e.value
+  return null
+```
+
+get 的流程比较直观，没有陷入到 Segment 中查找元素。containsKey 方法与 get 几乎完全相同，除了它返回的是 boolean.
+
+containsValue 函数从 Map 中查找元素，如果第一遍查不到的会再查找，如果在查找的过程中 Map size 发生了变化，就加锁再查
+
+```java
+boolean containsValue(Object value)
+  Segments[] segments = this.segments
+  int last = 0
+  int retries = -1
+  boolean found = false
+
+  try
+    outer: for(;;)
+      if(++ retries == RETRIES_BEFORE_LOCK)
+        for(int i = 0; i < segments.length; i ++)
+          Segments[i].ensureSegment().lock
+      int sum = 0
+      for(int i = 0; i < segments.length; i ++)
+        HashEntry [] tab
+        Segment seg = SegmentAt(segments, i)
+        if(seg != null && (tab = seg.table) != null)
+          for(int j = 0; j < tab.length; j ++)
+            HashEntry e
+            for( e = entryAt(table, j), e != null; e = e.next)
+              V v = e.value
+            if( v != null && value.equals(v))
+              found = true
+              break outer // 没直接 return 是因为当前可能加锁了
+          sum += seg.modCount
+
+      if(retries > 0 && last == sum) (1)
+        break //break outer
+      last = sum
+  finally
+    if(retries > RETRIES_BEFORE_LOCK)
+      for(int i = 0; i < segments.length; i ++)
+        SegmentAt(segments, i).unlock
+```
+
+RETRIES_BEFORE_LOCK 默认值是 2，retries 初始值是 -1. 第一次查找未成功时，(1) 处判断不通过，再查找一次，如果第二次未通过且 sum 未变，返回 false, sum 变了进入第三次循环，第三次循环会加锁，这次是最后一次
+
+size 函数和 containsValue 的写法类似，但是 (1) 处没有对 retries > 0 的判断，我觉得这个判断也是多余的，第一次 last 肯定不等于 sum, 除非 map 是空的
+
+## Remove 流程
+
+因为 remove 是 mutate 操作，所以需要加锁且会更改 modCount (mutate 操作数)
+
+```java
+V remove(Object key, int hash, Object value)
+  if(!tryLock) scanAndLock(key, hash)
+  val oldValue = null
+  try
+    HashEntry[] tab = table
+    int index = hash & (tab.length - 1)
+    HashEntry e = entryAt(tab, index)
+    HashEntry pred = null
+
+    while(e != null)
+      HashEntry next = e.next
+      if(k == e.key || (e.hash == hash && key.equals k))
+        v = e.value
+        // 这个是为了让 remove 操作能够 Handle 的场景更多
+        if(value == null || value == v || value.equals(v))
+          if(pred == null) setEntryAt(tab, index, next)
+          else pred.setNext(next)
+          ++ modCount
+          --count
+          oldValue = v
+      pred = e
+      e = next
+  finally
+    unlock
+```
+
+remove 的 value 参数是为了增加 remove 的功能，假如要求只有当 (key, value) 中的 value 没变时才删除 value, 第三个参数的作用就体现出来登了
+剩下的就是简单的链表操作，从单链表中删除一个元素
+
+scanAndLock 和 scanAndLockForPut 相比，操作更加简单，应该也是为了拖延时间防止进入 lock 状态
+
+
 
 [1]: /images/posts/javaconcurrent/ConcurrentHashMap.png
