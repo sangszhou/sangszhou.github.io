@@ -8,7 +8,7 @@ keywords: scala, Concurrent
 
 观察对象，一段 spray 代码：
 
-```
+```scala
 Post("ur", HttpEntity(ContentTypes.`application/json`, jsonData)) .withHeaders(userHeader) ~> routes ~> check {
     assert(responseAs[String] == "hello")
 	assert (status == ok)
@@ -19,7 +19,7 @@ Post("ur", HttpEntity(ContentTypes.`application/json`, jsonData)) .withHeaders(u
 
 为了方便分析，把这段代码简化一下
 
-```
+```scala
 Post ~> routes ~> check {
 	assert(status == ok)
 }
@@ -32,14 +32,14 @@ Post ~> routes ~> check {
 
 Post() 实际上是调用 Post.apply()，转化成 new RequestBuilder(POST)，而 RequestBuilder 本身没有 ~> 方法，所以必然存在隐式转换，根据 IDE 的提示，找到隐式转换的定义
 
-```
+```scala
 implicit class withTransformation2(HttpRequest) {
 	def ~> (f: A => B) (implicit ta: TildeArrow): ta.Out = ta(request, f)
 }
 ```
 HttpRequest 隐式转换成了 withTransformation2 类型，然后调用它的 ~> 方法，这个方法的参数有两个，第一个是方法 A => B, 第二个是隐式参数 TildeArrow 类型。显然 routes 就是 f 参数，routes 的定义是
 
-```
+```scala
 def routes: Route
 type Route: RequestContext => Unit
 ```
@@ -48,7 +48,7 @@ type Route: RequestContext => Unit
 
 第二个参数从哪里来呢？根据 IDE 对 TildeArrow 的定位，可以找到它的定义
 
-```
+```scala
 abstract class TildeArrow[A, B] {
     type Out
     def apply(request: HttpRequest, f: A ⇒ B): Out
@@ -56,7 +56,7 @@ abstract class TildeArrow[A, B] {
 ```
 然而，这个定义并没有说明 Out 是什么，再找它的子类实现
 
-```
+```scala
     implicit object InjectIntoRequestTransformer extends TildeArrow[HttpRequest, HttpRequest] {
       type Out = HttpRequest
       def apply(request: HttpRequest, f: HttpRequest ⇒ HttpRequest) = f(request)  
@@ -66,7 +66,7 @@ abstract class TildeArrow[A, B] {
 
 相关的源代码又翻了一遍，找到这段
 
-```
+```scala
     implicit def injectIntoRoute(implicit timeout: RouteTestTimeout, settings: RoutingSettings,
                                  log: LoggingContext, eh: ExceptionHandler, defaultHostInfo: DefaultHostInfo) =
 
@@ -99,14 +99,14 @@ abstract class TildeArrow[A, B] {
 
 再根据 IDE 的找到第二个 ~> 的定义
 
-```
+```scala
 def ~>[T](f: RouteResult ⇒ T): T = f(this)
 ```
 那么问题来了，f 到底是 check 呢 还是 check {xxx}。其实 {} 里的东西是 check 的参数，对于参数的解析是要早于 ~> 方法的解析的，所以这里的 f 是 check {xxx}。
 
 找到 check 的定义
 
-```
+```scala
 def check[T](body: ⇒ T): RouteResult ⇒ T = result ⇒ dynRR.withValue(result.awaitResult)(body)
 
 ```
@@ -130,7 +130,7 @@ XXXXXX
 
 Akka Actor 的代码也很难读，它的根本问题是 Actor 有 hireachy，呈现出一个树形关系，其实更多的时候是一个森林，如果对代码不熟悉很难把这个森林在脑海里构造出来，一个 Message 在 Actor 之间传递，传着传着就不知道传到哪里去了。另外一个问题是 Actor 没有类型信息，当我们拿到一个 ActorRef 时，我们只能通过名字猜测它的作用，它的定义，比如
 
-```
+```scala
 def calculate (helper: ActorRef, info: SomeCaseClass) {
 	helper.ask(info).mapTo[Int]
 }
