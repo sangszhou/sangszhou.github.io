@@ -61,7 +61,7 @@ void pushTask(ForkJoinTask t)
     UNSAFE.putOrderedObject(q, u, t) // 放到队列的前面
     queueTop = s + 1
     if(s -= queueBase <= 2) pool.signalWork
-    else growQueue
+    else if(size full) growQueue
 ```
 
 queueBase 的定义，Index of least valid queue slot, which is always the next position to steal from if nonempty. 其他线程可见，所以有 volatile 修饰。
@@ -99,14 +99,18 @@ void run
   finally
     onTermination(exception)
 
+
 void work(ForkJoinWorkerThread w)
   boolean swept = false
   long c
   while(!w.termiate && ctl >= 0)
-    if(!swept && （c << AC_SHIFT) <= 0)
+    if(!swept && ( c << AC_SHIFT) <= 0)
       swept = scan(w, a)
+    // 没有要做的事，就等待 work
     else if(tryAwaitWork(w, c))
       swept = false
+
+
 
 scan(ForkJoinWorkerThread w, int a)
   if(b = queueBase != queueTop && q = submissionQueue != null && i = (q.length -1 & b) >= 0)
@@ -118,7 +122,7 @@ scan(ForkJoinWorkerThread w, int a)
 void execTask(ForkJoinTask t)
   currentSteal = t
   for( ; ; )
-    if(t != null) t.doExec
+    if(t != null) t.doExec()
     if(queueTop == queueBase) break
     // locallyFifo 需要
     t = locallyFifo ? locallyDeqTask : popTask
@@ -153,7 +157,7 @@ void doExec
   if(status >= 0) // accessed directly by pool and workers
     boolean completed
     try
-      completed = exec
+      completed = exec()
     if(completed) setCompletion(NORMAL)
 
 
@@ -242,3 +246,24 @@ int externalAwaitDone
         else
           try wait
 ```
+
+invoke 操作
+```java
+void addSubmission(ForkJoinTask t)
+  ReentrantLock lock = this.submissionLock
+  lock.lock()
+  try
+    ForkJoinTask[] q
+    if(q = submissionQueue != null)
+      // 获取 top 对应的数组位置
+      long u = (s = queueTop) & (m = q.length - 1) << ASHIFT
+      UNSAFE.putOrderedObject(q, u, t)
+      queueTop = s + 1
+      if(s - queueBase == m)
+        growSubmissionQueue // 检查队列长度是否到达极限
+  finally
+    lock.unlok
+  signalWork
+```
+
+方法的结尾会唤醒(或创建) worker 线程，worker 线程可用后，会不停的调用 scan 函数窃取其他 worker 或者 pool 的 task, 直至所有 task 完成
