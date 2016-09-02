@@ -3,7 +3,7 @@ layout: post
 title:  "(Draft) Java ForkJoinPool"
 date:   "2016-09-01 00:00:00"
 categories: Java
-keywords: Java, Concurrent, Lock
+keywords: Java, Concurrent
 ---
 
 ## ForkJoinPool demo
