@@ -92,25 +92,26 @@ Eden 和 Old Gen 每次 GC 使用的时间却差不多, 都是 55ms 左右, 所�
 ### 垃圾收集器
 
 **何时进行 minor GC, major GC?**
+
 > 对象在 Eden Space 完成内存内存分配, 当 Eden space 满了,再创建对象会因为申请不到空间触发
 > minor GC, 进行新生代的垃圾回收
 > Minor GC 时, Eden Space 和 Survior 不能回收的对象放到另一个 Survivor 区
 > 如果发现另一个 survivor 也满了, 这些对象被 copy 到 old 区, 或者 survivor 并没有满,
-但是对象已经够 old 了, 也被放到 old Gen
+> 但是对象已经够 old 了, 也被放到 old Gen
 > 当 old space 满了时, 进行 full GC
 
-**Hotspot 的垃圾收集器**
+## **Hotspot 的垃圾收集器**
 
 ![](/images/posts/javamem/gc_collector_hotspot.jpg)
 
-**Serial 收集器**
+### **Serial 收集器**
 
 1. --XX:+UseSerialGC 参数打开此收集器
 2. Client 模式下新生代的默认收集器 (?)
 3. 较长的 Stop the world 时间
 4. 使用标记复制算法, 简单高效
 
-**ParNew 收集器**
+### **ParNew 收集器**
 
 1. -XX:+UseParNewGC 启动, --XX:ParallelGCThreads 指定线程数目
 2. Serial 收集器的多线程版本
@@ -118,29 +119,29 @@ Eden 和 Old Gen 每次 GC 使用的时间却差不多, 都是 55ms 左右, 所�
 
 对比 Serial 收集器
 
-![](/images/posts/javamem/serial.jpg)
+![](/images/posts/javamem/serial.png)
 
-**Parallel Scavenge**
+### **Parallel Scavenge**
 
 1. 关注的是可控制的吞吐量
 2. 新生代并行收集器, 采用 COPY 算法
 3. Server 模式默认新生代收集器
 
-**Serial Old 收集器**
+### **Serial Old 收集器**
 
 1. Serial 的老年代版本
 2. Client 模式的默认老年代收集器
-3. CMS 收集器的后背预案, 
+3. CMS 收集器的后备预案 
 4. --XX:+UseSerialGC 开启此收集器
 
-**Parallel Old 收集器**
+### **Parallel Old 收集器**
 
 1. --XX:+UseParallelGC -XX:+UseParallelOldGC 启动此收集器
 2. Server 模式的默认老年代收集器
 3. Parallel Scavenge 的老年代版本, 使用多线程和 mark-sweep 算法
 4. 一般使用 Parallel Scavenge + Parallel old 达到大吞吐量
 
-**CMS 收集器**
+### **CMS 收集器**
 
 并发低停顿收集器
 
