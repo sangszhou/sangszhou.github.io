@@ -225,7 +225,7 @@ public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
 这个 filter 做得事情就是从 header 或者 parameter 中拿到 token, 然后用 authenticationManager 验证 token
  的有效性。
  
-**拿 token **
+**拿 token**
 
 ```java
 	protected String extractToken(HttpServletRequest request)
@@ -239,7 +239,7 @@ public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
 		return token;
 ```
 
-** 认证 **
+**认证**
 
 ```java
 public Authentication authenticate(Authentication authentication) throws AuthenticationException
@@ -272,19 +272,20 @@ public Authentication authenticate(Authentication authentication) throws Authent
 [link](/ws/github/tut-spring-boot-oauth2)
 
 前端的请求, 到 `/user` 下查询信息
+
 ```java
-	<script type="text/javascript">
-		angular.module("app", []).controller("home", function($http) {
-			var self = this;
-			$http.get("/user").success(function(data) {
-				self.user = data.userAuthentication.details.name;
-				self.authenticated = true;
-			}).error(function() {
-				self.user = "N/A";
-				self.authenticated = false;
-			});
+<script type="text/javascript">
+	angular.module("app", []).controller("home", function($http) {
+		var self = this;
+		$http.get("/user").success(function(data) {
+			self.user = data.userAuthentication.details.name;
+			self.authenticated = true;
+		}).error(function() {
+			self.user = "N/A";
+			self.authenticated = false;
 		});
-	</script>
+	});
+</script>
 ```
 
 ```java
@@ -383,6 +384,7 @@ public void sendRedirect(HttpServletRequest request, HttpServletResponse respons
 
 
 oauth2 client 的实现原理
+
 ```java
 WebAsyncManagerIntegrationFilter
 SecurityContextPersisteceFilter
