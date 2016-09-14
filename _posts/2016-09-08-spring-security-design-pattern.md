@@ -56,7 +56,7 @@ class AbstractAuthenticationProcessingFilter
     static ExecutorService newWorkStealingPool(int parallelism)
     static ExecutorService newSingleThreadExecutor()
     static ExecutorService newCachedThreadPool(ThreadFactory threadFactory)
- ```
+```
 
 ## 责任链模式
 
