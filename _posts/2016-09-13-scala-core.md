@@ -74,3 +74,29 @@ public class ConcreteEmpty extends Empty {
 从字节码可以看出, ConcreteEmpty 的 concrete 方法, 也就是 trait 中已经实现的方法, 它会调用另一个类型的实现
 
 
+## 高阶函数
+
+```
+class ClassFIle {
+
+  def highOrder(f: Int => Int) = {
+    f(1)
+  }
+}
+
+
+public class ClassFIle {
+  public int highOrder(scala.Function1<java.lang.Object, java.lang.Object>);
+    Code:
+       0: aload_1
+       1: iconst_1
+       2: invokeinterface #16,  2           // InterfaceMethod scala/Function1.apply$mcII$sp:(I)I
+       7: ireturn
+
+  public ClassFIle();
+    Code:
+       0: aload_0
+       1: invokespecial #24                 // Method java/lang/Object."<init>":()V
+       4: return
+}
+```
