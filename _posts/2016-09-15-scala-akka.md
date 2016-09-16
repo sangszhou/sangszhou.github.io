@@ -1,3 +1,11 @@
+---
+layout: post
+title: akka actor
+categories: [akka]
+description: akka
+keywords: akka, actor
+---
+
 ## actor lifecycle
 
 ![](/images/posts/scala/actor_lifecycle1.png)
