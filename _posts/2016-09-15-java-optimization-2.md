@@ -1,3 +1,11 @@
+---
+layout: post
+title: Java optimization
+categories: [jva]
+description: java
+keywords: java, optimization
+---
+
 ## JIT
 
 即时编译（Just-in-time Compilation，JIT）是一种通过在运行时将字节码翻译为机器码，
