@@ -2,7 +2,7 @@
 layout: post
 title:  "Spring security (1)"
 date:   "2016-09-06 00:00:00"
-categories: Java
+categories: Spring
 keywords: Java, Spring, Security
 ---
 
