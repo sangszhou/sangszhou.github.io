@@ -2,8 +2,8 @@
 layout: post
 title:  "Spring security design pattern"
 date:   "2016-09-08 00:00:00"
-categories: Java
-keywords: Java, Spring, Security
+categories: spring
+keywords: java, spring, security
 ---
 
 Nothing here for now

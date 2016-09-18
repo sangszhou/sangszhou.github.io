@@ -1,9 +1,9 @@
 ---
 layout: post
-title:  "Spring security SOP, CORS, CSRF"
+title:  "Spring security(3) SOP, CORS, CSRF"
 date:   "2016-09-08 00:00:00"
-categories: Spring
-keywords: Java, Spring, Security
+categories: spring
+keywords: java, spring, security
 ---
 
 talking about CORS, CSRF, and how to add filters

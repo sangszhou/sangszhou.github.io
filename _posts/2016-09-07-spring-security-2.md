@@ -1,9 +1,9 @@
 ---
 layout: post
-title:  "Spring security (2)"
+title:  "Spring security (2) configuration"
 date:   "2016-09-07 00:00:00"
-categories: Spring
-keywords: Java, Spring, Security
+categories: spring
+keywords: java, spring, security
 ---
 
 talking about CORS, CSRF, and how to add filters
@@ -77,6 +77,25 @@ public class CompositeFilter implements Filter {
         (new CompositeFilter.VirtualFilterChain(chain, this.filters)).doFilter(request, response);
         
 ```
+
+## enable remember me service
+
+The following configuration demonstrates how to allow token based remember me authentication.
+Upon authenticating if the HTTP parameter named "remember-me" exists, then the user will be remembered
+even after their session expires.
+
+```java
+public class RememberMeSecurityConfig extends WebSecurityConfigurerAdapter {
+    void configure(HttpSecurity http) throws Exception {
+        auth.rememberMe();    
+    }
+}
+```
+
+![](/images/posts/spring/security/remember_me_flow.png)
+
+![](/images/posts/spring/security/remember_me_arch.png)
+
 
 ## 配置不同的数据库
 

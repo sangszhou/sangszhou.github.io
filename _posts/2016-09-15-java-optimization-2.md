@@ -1,7 +1,7 @@
 ---
 layout: post
-title: Java optimization
-categories: [jva]
+title: Java optimization 2
+categories: [java]
 description: java
 keywords: java, optimization
 ---
@@ -11,23 +11,23 @@ keywords: java, optimization
 即时编译（Just-in-time Compilation，JIT）是一种通过在运行时将字节码翻译为机器码，
 从而改善字节码编译语言性能的技术。在HotSpot实现中有多种选择：C1、C2和C1+C2，分别对应client、server和分层编译。
 
-> 1、C1编译速度快，优化方式比较保守；
+> 1、C1编译速度快，优化方式比较保守
 
-> 2、C2编译速度慢，优化方式比较激进；
+> 2、C2编译速度慢，优化方式比较激进
 
-> 3、C1+C2在开始阶段采用C1编译，当代码运行到一定热度之后采用G2重新编译；
+> 3、C1+C2在开始阶段采用C1编译，当代码运行到一定热度之后采用G2重新编译
 
-在1.8之前，分层编译默认是关闭的，可以添加-server -XX:+TieredCompilation参数进行开启。
+在1.8之前，分层编译默认是关闭的，可以添加-server -XX:+TieredCompilation参数进行开启
 
 
 ## hotspot 逃逸技术
 
 逃逸分析并不是直接的优化手段，而是一个代码分析，通过动态分析对象的作用域，为其它优化手段如栈上分配、标量替换和同步消除等提供依据，
-发生逃逸行为的情况有两种：方法逃逸和线程逃逸。
+发生逃逸行为的情况有两种：方法逃逸和线程逃逸
 
-> 1、方法逃逸：当一个对象在方法中定义之后，作为参数传递到其它方法中；
+> 方法逃逸：当一个对象在方法中定义之后，作为参数传递到其它方法中
 
-> 2、线程逃逸：如类变量或实例变量，可能被其它线程访问到；
+> 线程逃逸：如类变量或实例变量，可能被其它线程访问到
   
 如果不存在逃逸行为，则可以对该对象进行如下优化：同步消除、标量替换和栈上分配。
 
@@ -46,9 +46,11 @@ keywords: java, optimization
 
 通过-XX:+EliminateAllocations可以开启标量替换， -XX:+PrintEliminateAllocations查看标量替换情况
 
+[example] how to decide if xxx change is available
+
 ### 栈上分配
 
-故名思议就是在栈上分配对象，其实目前Hotspot并没有实现真正意义上的栈上分配，实际上是标量替换
+故名思议就是在栈上分配对象，其实目前 Hotspot 并没有实现真正意义上的栈上分配，实际上是标量替换
 
 ```java
 private static int fn(int age) {
@@ -132,6 +134,6 @@ OSR trigger = (CompileThreshold * (OnStackReplacePercentage - InterpreterProfile
 ```
 
 
-
+### JIT 的时机 @todo
 
 

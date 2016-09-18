@@ -1,3 +1,10 @@
+---
+layout: post
+title: Java concurrent
+categories: [concurrent]
+keywords: Java, Concurrent
+---
+
 ## 生产者消费者问题
 
 生产者消费者问题是研究多线程程序时绕不开的经典问题之一，它描述是有一块缓冲区作为仓库，生产者可以将产品放入仓库，
@@ -27,7 +34,7 @@ await()和signal()就是其中用来做同步的两种方法，它们的功能�
 但是它们和新引入的锁定机制Lock直接挂钩，具有更大的灵活性。通过在Lock对象上调用newCondition()方法，将条件变量和一个锁对象进行绑定，
 进而控制并发程序访问竞争资源的安全
 
-我觉得下面这个写法是有缺陷的, 考虑当 MAX_SIZE 等于 5, list.size = 1, 此时 Producer 想要一下生产 5 个, consumer 想要一下使用 2 个,
+我觉得下面这个写法是有缺陷的, 考虑当 MAX_SIZE 等于 5, list.size = 1, 此时 producer 想要一下生产 5 个, consumer 想要一下使用 2 个,
 这个时候, 程序就锁住了, 更好的办法是有一个可用的就取一个, 有一个空位就放一个
 
 ```java
@@ -68,7 +75,7 @@ class Storage
 
 wait() / nofity()方法是基类Object的两个方法，也就意味着所有Java类都会拥有这两个方法，这样，我们就可以为任何对象实现同步机制。
 
-wait()方法：当缓冲区已满/空时，生产者/消费者线程停止自己的执行，放弃锁，使自己处于等等状态，让其他线程执行。
+wait()方法：当缓冲区已满/空时，生产者/消费者线程停止自己的执行，放弃锁，使自己处于等待状态，让其他线程执行。
 
 notify()方法：当生产者/消费者向缓冲区放入/取出一个产品时，向其他等待的线程发出可执行的通知，同时放弃锁，使自己处于等待状态。
 
@@ -104,10 +111,13 @@ class Consumer implements Runnable
             list.notifyAll
 ```
 
+与 condition 相比, wait, notify 的代价更高些, 因为 producer 的 signal 操作可能会唤醒另一个 producer, 而他真正
+想唤醒的往往是 consumer.
+
 ### Blocking Queue
 
 阻塞队列实现生产者消费者模式超级简单，它提供开箱即用支持阻塞的方法put()和take()，
-开发者不需要写困惑的wait-nofity代码去实现通信。BlockingQueue 一个接口，
+开发者不需要写困惑的 wait-notify 代码去实现通信。BlockingQueue 一个接口，
 Java5提供了不同的现实，如ArrayBlockingQueue和LinkedBlockingQueue，两者都是先进先出（FIFO）顺序。
 而ArrayLinkedQueue是自然有界的，LinkedBlockingQueue可选的边界。下面这是一个完整的生产者消费者代码例子，
 对比传统的wait、nofity代码，它更易于理解。
@@ -186,6 +196,7 @@ public class ProducerConsumerPattern {
 
         static {
             try {
+                // theUnsafe 返回 new Unsafe() 实例
                 Field field = Unsafe.class.getDeclaredField("theUnsafe");
                 field.setAccessible(true);
                 unsafe = (Unsafe) field.get(Unsafe.class);
@@ -199,7 +210,7 @@ public class ProducerConsumerPattern {
             }
         }
 
-        private volatile int value;
+        private volatile int value; // 必须声明为 volatile 的
 
         public CasCounter() {
             value = 0;
@@ -232,14 +243,17 @@ public class ProducerConsumerPattern {
     }
 ```
 
-可以使用 AtomicInteger 模拟 CAS 操作, 之所以说是模拟, 因为它已经有了 increment 方法
+可以使用 AtomicInteger 模拟 CAS 操作, 之所以说是模拟, 因为它已经有了 increment 方法,
+这里主要是想用它的 compareAndSet 方法吧
 
 ```java
 public class NonblockingCounter {
     private AtomicInteger value;
+    
     public int getValue() {
         return value.get();
     }
+    
     public int increment() {
         int v;
         do {

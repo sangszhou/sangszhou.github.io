@@ -1,9 +1,9 @@
 ---
 layout: post
-title:  "Spring security (1)"
+title:  "Spring security (1) how it works"
 date:   "2016-09-06 00:00:00"
-categories: Spring
-keywords: Java, Spring, Security
+categories: spring
+keywords: java, spring, Security
 ---
 
 
@@ -446,3 +446,7 @@ if (accessToken == null || accessToken.isExpired()) {
 ```
 
 ## 配置模板项目
+
+
+## Remember me service
+

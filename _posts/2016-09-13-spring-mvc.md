@@ -1,13 +1,13 @@
 ---
 layout: post
 title: Spring MVC
-categories: [java, spring]
+categories: [spring]
 keywords: java, spring
 ---
 
 ## Spring MVC
 
-###指定 Spring mvc 的入口程序 (web.xml)
+### 指定 Spring mvc 的入口程序 (web.xml)
 
 ```xml
 <servlet>
@@ -130,7 +130,31 @@ public class SomeController {
     @Autowired private UserService userService;
 ```
 
+## 实现
 
+### 常用接口
+
+```java
+interface HandlerMapping
+    HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception;
+
+class HandlerExecutionChain
+    private final Object handler;
+    private HandlerInterceptor[] interceptors;
+    applyPreHandle(HttpServletRequest request, HttpServletResponse response)
+    applyPostHandle(HttpServletRequest request, HttpServletResponse response, ModelAndView mv)
+    triggerAfterCompletion(HttpServletRequest request, HttpServletResponse response, Exception ex)
+
+interface HandlerInterceptor
+    preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
+    postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView)
+    void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)
+
+interface HandlerAdapter
+    boolean supports(Object handler);
+    ModelAndView handle(HttpServletRequest request, HttpServletResponse response, Object handler)
+    
+```
 
 
 ## Spring mvc 的设计原则

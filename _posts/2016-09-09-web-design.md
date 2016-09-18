@@ -1,9 +1,9 @@
 ---
 layout: post
-title:  "Spring security SOP, CORS, CSRF"
+title:  "SOA and micro service"
 date:   "2016-09-08 00:00:00"
-categories: Java
-keywords: Java, Spring, Security
+categories: web
+keywords: java, spring, web
 ---
 
 ## 单一架构和 SOA
@@ -34,6 +34,8 @@ keywords: Java, Spring, Security
 ## Micro Service
 
 微服务架构的核心思想是，一个应用是由多个小的、相互独立的、微服务组成，这些服务运行在自己的进程中，开发和发布都没有依赖。
+
+![](/images/posts/web/server-basic-tech-stack.png)
 
 ### 通信
 
@@ -73,20 +75,36 @@ Apache ZooKeeper – 被分布式应用广泛使用的高性能协调服务。
 
 ### API gateway
 
-API gateway 提供路由, 负载均衡, 安全等功能, 负责系统外界之间的交互, 因为往往内在的服务都受防火墙, 没有其他安全机制的。
+API gateway 提供路由, 负载均衡, API 访问权限控制, 安全等功能, 负责系统外界之间的交互, 因为往往内在的服务都受防火墙, 没有其他安全机制的。
 
-但是当系统做的越来越大时, API gateway 可能成为系统的瓶颈, 这时候可能就需要把安全机制放到每一个 Service 中, service 
-再做个 cache 解除瓶颈
+但是当系统做的越来越大时, API gateway 可能成为系统的瓶颈, 这时候可能就需要把安全机制放到每一个业务应用中, 让业务应用
+直接对接统一认证中心, 同时使用缓存认证结果的方式避免对统一认证中心产生过大的压力
 
 ## Restful API
+在别的 blog 有写过
 
-### Headers
+## 统一调度中心
 
-### status code
+在很多业务中，定时调度是一个非常普遍的场景，比如定时去抓取数据、定时刷新订单的状态等。
+通常的做法就是针对各自的业务依赖Linux的cron机制或者java中的quartz。统一调度中心则是对所有的调度任务进行管理，
+这样能够统一对调度集群进行调优、扩展、任务管理等。azkaban和oozie是hadoop的流式工作管理引擎，
+也可以作为统一调度中心来使用。当然，你也可以使用cron或者quartz来实现自己的统一调度中心。
 
-### Method
+```
+根据cron表达式调度任务
+动态修改、停止、删除任务
+支持任务工作流：比如一个任务完成之后再执行下一个任务
+任务支持脚本、代码、url等多种形式
+任务执行的日志记录、故障报警
+```
+
+
+Rundeck
+
 
 **HEAD** 检查一个对象是否存在
 ## 参考资料
+
+[谈谈互联网后端基础设施](http://www.rowkey.me/blog/2016/08/27/server-basic-tech-stack/)
 
 [撰写安全合格的REST API]()

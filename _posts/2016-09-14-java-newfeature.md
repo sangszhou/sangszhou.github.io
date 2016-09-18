@@ -228,7 +228,7 @@ System.out.println( time );
 System.out.println( timeFromClock );
 ```
 
-## JMV
+## JVM
 
 The PermGen space is gone and has been replaced with Metaspace (JEP 122). The 
 JVM options -XX:PermSize and –XX:MaxPermSize have been replaced by -XX:MetaSpaceSize and -XX:MaxMetaspaceSize respectively.
