@@ -1,5 +1,13 @@
+---
+layout: post
+title: Spring MVC
+categories: [java, spring]
+keywords: java, spring
+---
+
 ## Spring MVC
-### 指定 Spring mvc 的入口程序 (web.xml)
+
+###指定 Spring mvc 的入口程序 (web.xml)
 
 ```xml
 <servlet>

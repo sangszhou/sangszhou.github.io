@@ -1,3 +1,10 @@
+---
+layout: post
+title: scala 字节码
+categories: [scala]
+keywords: scala
+---
+
 ## Trait 的多重继承
 
 但声明一个只包含方法声明而不包含方法体的 trait 类, 它会编译成一个 java 接口

@@ -1,3 +1,10 @@
+---
+layout: post
+title: Shell script 2
+categories: [shell]
+keywords: linux, shell, script
+---
+
 ## What is the use of a shebang line
 
 Shebang line at top of each script determines the location of the engine which is to be used in order to execute the script.

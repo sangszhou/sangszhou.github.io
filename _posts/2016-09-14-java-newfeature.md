@@ -1,3 +1,10 @@
+---
+layout: post
+title: Java new feature
+categories: [java]
+keywords: java
+---
+
 ## Lambda and functional interface
 
 ```java

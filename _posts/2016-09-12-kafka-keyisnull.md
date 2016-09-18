@@ -6,7 +6,6 @@ categories: Kafka
 keywords: Kafka
 ---
 
-
 ## 使用命令行运行 Producer, Consumer
 
 ### 使用命令行创建 Producer 并发送消息

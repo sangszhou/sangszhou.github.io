@@ -1,3 +1,10 @@
+---
+layout: post
+title: scala concurrent
+categories: [scala]
+keywords: scala
+---
+
 ## Scala class hierarchy
 
 ![](/images/posts/scala/classhierarchy.png)

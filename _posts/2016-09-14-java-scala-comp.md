@@ -1,3 +1,10 @@
+---
+layout: post
+title: Java Scala compare
+categories: [java, scala]
+keywords: java, scala
+---
+
 ## Future
 
 Java8 已经具备了很多异步和流的理念

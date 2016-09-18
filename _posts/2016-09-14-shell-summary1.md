@@ -1,3 +1,10 @@
+---
+layout: post
+title: Shell script 1
+categories: [shell]
+keywords: linux, shell, script
+---
+
 ## 传递参数
 
 ### 通过环境变量传递

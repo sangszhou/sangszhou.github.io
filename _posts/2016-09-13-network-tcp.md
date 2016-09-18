@@ -1,3 +1,10 @@
+---
+layout: post
+title: TCP 网络
+categories: [networking]
+keywords: networking
+---
+
 尽管TCP和UDP都使用相同的网络层（IP），TCP却向应用层提供与UDP完全不同的服务。
 TCP提供一种面向连接的、可靠的字节流服务。
 
