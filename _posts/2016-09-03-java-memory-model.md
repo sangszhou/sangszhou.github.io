@@ -2,8 +2,8 @@
 layout: post
 title:  "Java 内存模型"
 date:   "2016-09-03 00:00:00"
-categories: Java
-keywords: Java, Concurrent
+categories: java
+keywords: java, concurrent
 ---
 
 ## 内存模型

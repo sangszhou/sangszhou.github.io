@@ -2,8 +2,8 @@
 layout: post
 title:  "虚拟机执行子系统"
 date:   "2016-09-02 00:00:00"
-categories: Java
-keywords: Java, VM
+categories: java
+keywords: java, jvm
 ---
 
 ## 类文件结构

@@ -2,8 +2,8 @@
 layout: post
 title:  "Java DelayQueue 分析"
 date:   "2016-08-30 10:50:00"
-categories: Java
-keywords: Java, Concurrent, BlockingQueue
+categories: java
+keywords: java, concurrent, blockingQueue
 ---
 
 DelayedQueue 中的元素类型为 `? extends Delayed`, 也就说 queue 内的元素在 getDelay 返回 0 时才有效，

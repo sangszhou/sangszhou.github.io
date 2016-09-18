@@ -2,8 +2,8 @@
 layout: post
 title:  "JVM 编译器和运行期优化"
 date:   "2016-09-03 00:00:00"
-categories: Java
-keywords: Java, Optimization
+categories: java
+keywords: java, optimization
 ---
 
 ## 编译器优化

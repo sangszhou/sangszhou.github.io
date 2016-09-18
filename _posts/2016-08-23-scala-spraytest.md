@@ -3,7 +3,7 @@ layout: post
 title:  "spray test analysis"
 date:   "2016-08-29 17:50:00"
 categories: scala
-keywords: scala, Concurrent
+keywords: scala, concurrent
 ---
 
 观察对象，一段 spray 代码：

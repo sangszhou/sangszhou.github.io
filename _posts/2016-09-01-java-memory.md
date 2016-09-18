@@ -2,8 +2,8 @@
 layout: post
 title:  "memory model and gc"
 date:   "2016-09-02 00:00:00"
-categories: Java
-keywords: Java, IO
+categories: java
+keywords: java, io
 ---
 
 ## Java 内存划分

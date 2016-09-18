@@ -3,7 +3,7 @@ layout: post
 title:  "Actor ask tell"
 date:   "2016-08-29 17:50:00"
 categories: scala
-keywords: scala, Concurrent
+keywords: scala, concurrent
 ---
 
 ### tell (!)

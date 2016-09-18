@@ -2,7 +2,7 @@
 layout: post
 title: Java concurrent
 categories: [concurrent]
-keywords: Java, Concurrent
+keywords: java, concurrent
 ---
 
 ## 生产者消费者问题

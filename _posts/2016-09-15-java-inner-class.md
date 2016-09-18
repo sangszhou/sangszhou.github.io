@@ -2,7 +2,6 @@
 layout: post
 title: java inner class
 categories: [java]
-description: java inner class
 keywords: java, inner class
 ---
 

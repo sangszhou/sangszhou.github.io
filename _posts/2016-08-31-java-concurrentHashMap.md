@@ -2,8 +2,8 @@
 layout: post
 title:  "Java Concurrent Hash Map 分析"
 date:   "2016-08-31 10:50:00"
-categories: Java
-keywords: Java, Concurrent, map
+categories: java
+keywords: java, concurrent
 ---
 
 # ConcurrentHashMap

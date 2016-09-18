@@ -78,7 +78,9 @@ filterChain 是 url 与 filter 的对应关系
 3 = {DefaultSecurityFilterChain@5326} "[ Ant [pattern='/webjars/**'], []]"
 4 = {DefaultSecurityFilterChain@5327} "[ Ant [pattern='/**/favicon.ico'], []]"
 5 = {DefaultSecurityFilterChain@5328} "[ Ant [pattern='/error'], []]"
-6 = {DefaultSecurityFilterChain@5329} "[ org.springframework.security.web.util.matcher.AnyRequestMatcher@1, [org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@6ca8fcf3,
+6 = {DefaultSecurityFilterChain@5329} "[ org.springframework.security.web.util.matcher.AnyRequestMatcher@1, 
+    
+    org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@6ca8fcf3,
     org.springframework.security.web.context.SecurityContextPersistenceFilter@18371d89, 
     org.springframework.security.web.header.HeaderWriterFilter@643d2dae, 
     org.springframework.security.web.csrf.CsrfFilter@2f860823, 
@@ -92,7 +94,7 @@ filterChain 是 url 与 filter 的对应关系
     org.springframework.security.web.access.FilterSecurityInterceptor"
 
 7 = {DefaultSecurityFilterChain@5330} "[ OrRequestMatcher [requestMatchers=[Ant [pattern='/**']]], 
-    [org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@3481ff98, 
+    org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@3481ff98, 
     org.springframework.security.web.context.SecurityContextPersistenceFilter@1fc713c9, 
     org.springframework.security.web.header.HeaderWriterFilter@1e236278, 
     org.springframework.security.web.authentication.logout.LogoutFilter@4d6ccc97, 
@@ -107,10 +109,10 @@ filterChain 是 url 与 filter 的对应关系
 
 `/user` 定位到第六个 SecurityFilterChain, 他下面共有 12 个 filter，与安全相关的应该是 SecurityContextPersistenceFilter, BasicAuthenticationFilter, SessionManagementFilter
 
-其中 SecurityContextPersistenceFilter 是用来 Load 已登录用户的信息的，默认情况下使用 Session。
-因为第一次还没登录，所以 SecurityContext 是空的，authenticaion 信息为 null.
+其中 SecurityContextPersistenceFilter 是用来 `load` 已登录用户的信息的，默认情况下使用 Session。
+因为第一次还没登录，所以 SecurityContext 是空的，authentication 信息为 null
 
-虽然在 Request 的数据中，没看到 Header 信息，但是从 BasicAuthenticationFilter 中还是返回了信息的，
+虽然在 Request 的数据中，没看到 Header 信息，但是从 BasicAuthenticationFilter 中还是返回了信息的
 
 ```java
 String header = request.getHeader("Authorization");
@@ -124,21 +126,16 @@ String[] tokens = extractAndDecodeHeader(header, request);
 String username = tokens[0];
 
 if (authenticationIsRequired(username)) {
-  UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(
-      username, tokens[1]);
-  authRequest.setDetails(
-      this.authenticationDetailsSource.buildDetails(request));
-  Authentication authResult = this.authenticationManager
-      .authenticate(authRequest);
+  UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(username, tokens[1]);
+  authRequest.setDetails(this.authenticationDetailsSource.buildDetails(request));
+  Authentication authResult = this.authenticationManager.authenticate(authRequest);
 
-  if (debug) {
-    this.logger.debug("Authentication success: " + authResult);
-  }
+ this.logger.debug("Authentication success: " + authResult);
 
   SecurityContextHolder.getContext().setAuthentication(authResult);
 
+  // 登录成功后记录 loginSuccess, 根据 rememberMeService 实现的不同, 写向 cookie 的数据也不同, 后面有讲
   this.rememberMeServices.loginSuccess(request, response, authResult);
-
   onSuccessfulAuthentication(request, response, authResult);
 }
 ```
@@ -150,8 +147,7 @@ authenticationManager 在另外的 post 里讲
 
 ### SessionManagementFilter
 
-用户验证后，若 Authentication 不空，则尝试填充 SecurityCOntext, Session 的操作还有很多，可以通过回调
-函数扩展
+用户验证后，若 Authentication 不空，则尝试填充 SecurityContext, Session 的操作还有很多，可以通过回调函数扩展
 
 ```java
 if (!securityContextRepository.containsContext(request)) {
@@ -173,7 +169,7 @@ if (!securityContextRepository.containsContext(request)) {
 
 认证完毕后访问 `/resource`。 resource 在认证完毕后访问, 由于 session 已经保存了 principal 信息，
 在 SecurityContextPersistenceFilter 可以直接拿到用户名，BasicAuthenticationFilter 中
-由于没有 Header Basic 就直接跳过 filter, session 假设用户
+由于没有 Header Basic 就直接跳过 filter
 
 ```java
 @RequestMapping("/resource")
@@ -185,7 +181,29 @@ public Map<String, Object> home() {
 }
 ```
 
+**SecurityContextPersistentFilter**
 
+Populate the SecurityContextHolder with information obtained from the configured SecurityContextRepository prior to the 
+request and stores it back in the repository once the request has completed and clearing the context holder. By default, 
+it use HttpSessionSecurityContextRepository.
+
+
+```java
+SecurityContext contextBeforeChainExecution = repo.loadContext(holder)
+chain.doFilter(holder.getRequest, holder.getResponse)
+SecurityContextHolder.clearCotnext
+repo.saveContext()
+
+interface SecurityContextRepository
+    SecurityContext loadContext(HttpRequestResponseHolder requestResponseHolder)
+    
+    // 放到 Session 中, 下次用户访问直接获取
+    void saveContext(SecurityContext context, HttpServletRequest request, HttpServletResponse response);
+    
+HttpSession load SecurityContext
+    Object contextFromSession = httpSession.getAttribute("SPRING_SECURITY_CONTEXT");
+    
+```
 
 
 ## Oauth2 token 登录流程
@@ -201,17 +219,17 @@ Oauth2 是在 spring security 的基础上添加了若干 filter, 先不说代�
 `OAuth2AuthenticationProcessingFilter`
 
 ```java
-public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException
+public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException
     Authentication authentication = tokenExtractor.extract(request);
-    if (authentication == null)
-        logger.debug("No token in request, will continue chain.");
+    logger.debug("No token in request, will continue chain.");
     request.setAttribute(OAuth2AuthenticationDetails.ACCESS_TOKEN_VALUE, authentication.getPrincipal());
     
     if (authentication instanceof AbstractAuthenticationToken) 
         AbstractAuthenticationToken needsDetails = (AbstractAuthenticationToken) authentication;
     	needsDetails.setDetails(authenticationDetailsSource.buildDetails(request));
     
-    Authentication authResult = authenticationManager.authenticate(authentication);				
+    Authentication authResult = authenticationManager.authenticate(authentication);
+    				
     eventPublisher.publishAuthenticationSuccess(authResult);
 	SecurityContextHolder.getContext().setAuthentication(authResult);		
     
@@ -222,21 +240,20 @@ public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
         authenticationEntryPoint.commence(request, response,
         	new InsufficientAuthenticationException(failed.getMessage(), failed));
 ```
-这个 filter 做得事情就是从 header 或者 parameter 中拿到 token, 然后用 authenticationManager 验证 token
- 的有效性。
+这个 filter 做得事情就是从 header 或者 parameter 中拿到 token, 然后用 authenticationManager 验证 token 的有效性。
  
 **拿 token**
 
 ```java
-	protected String extractToken(HttpServletRequest request)
-		// first check the header...
-		String token = extractHeaderToken(request);
-		// bearer type allows a request parameter as well
-		if (token == null)
-			token = request.getParameter(OAuth2AccessToken.ACCESS_TOKEN);
-		else
-			request.setAttribute(OAuth2AuthenticationDetails.ACCESS_TOKEN_TYPE, OAuth2AccessToken.BEARER_TYPE);
-		return token;
+protected String extractToken(HttpServletRequest request)
+    // first check the header...
+	String token = extractHeaderToken(request);
+	// bearer type allows a request parameter as well
+	if (token == null)
+		token = request.getParameter(OAuth2AccessToken.ACCESS_TOKEN);
+	else
+		request.setAttribute(OAuth2AuthenticationDetails.ACCESS_TOKEN_TYPE, OAuth2AccessToken.BEARER_TYPE);
+	return token;
 ```
 
 **认证**
@@ -259,15 +276,14 @@ public Authentication authenticate(Authentication authentication) throws Authent
     
     for (String scope : auth.getOAuth2Request().getScope()) {
         if (!allowed.contains(scope)) {
-    	    throw new OAuth2AccessDeniedException("Invalid token contains disallowed scope (" + scope + ") for this client");    				
+    	    throw new OAuth2AccessDeniedException("Invalid token contains 
+    	        disallowed scope (" + scope + ") for this client");    				
 ```
 
 如果验证成功, 填充到 authentication 中的信息与之前就一致了
 
 
-
-
-## SSO 实现流程
+## Oauth2 SSO 实现流程
 
 [link](/ws/github/tut-spring-boot-oauth2)
 
@@ -307,6 +323,8 @@ obtainAccessToken
     return retrieveToken(request, resource, getParametersForTokenRequest(resource, request),
         getHeadersForTokenRequest(request));
 ```
+
+throw getRedirectForAuthorization 异常后到了哪里?
 
 ```java
 getRedirectForAuthorization
@@ -445,8 +463,65 @@ if (accessToken == null || accessToken.isExpired()) {
 
 ```
 
+SSO 写的不够详细, 不够好, 但是它是 Low priority, 没时间的话就不要看了
+
+## 和用户认证相关的 filter 都有哪些, 每个做什么用
+
+**OAuth2AuthenticationProcessingFilter**
+
+Extracts an OAuth2 token from the incoming request and uses it to populate the Spring Security context with an OAuth2Authentication
+
+**AbstractAuthenticationProcessingFilter**
+
+抽象类, 抽象方法是 attemptAuthentication, 子类包括
+
+> ClientCredentialsTokenEndpointFilter 直接通过 request 中的 client_id 和 client_secret 认证
+
+> UsernamePasswordAuthenticationFilter 直接通过 request 中的 username 和 password 认证
+
+> OAuth2ClientAuthenticationProcessingFilter 使用 RestTemplate 向授权服务器请求 token, 再从 tokenservice 获取 OAuth2Authentication
+
+**BasicAuthenticationFilter**
+
+Processes a HTTP request's BASIC authorization headers, putting the result into the SecurityContextHolder
+
+```
+// Base64 加密
+Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+```
+
+和 UsernamePasswordAuthenticationFilter 的区别是什么?
+
+**SecurityContextPersistentFilter**
+
+从 session 中登录
+
+**RememberMeService**
+
+从 cookie 中获得用户名或者用户名密码的信息, 填充 SecurityContextHolder
+
+**SessionManagementFilter**
+
+处理用户登录成功后的处理, 比如用户能否同时登录, 最多同时登录几个的问题
+
+
+
+
+**认证后**
+
+认证成功
+
+SessionAuthenticationStrategy 回调, EventPublication
+
+回调
+
+setAuthenticationSuccessHandler, savedRequestAwareAuthenticationSuccessHandler 
+
+认证失败
+
+AuthenticationFailureHandler
+
 ## 配置模板项目
 
 
-## Remember me service
 

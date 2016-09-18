@@ -2,8 +2,8 @@
 layout: post
 title:  "Java ThreadPoolExecutor 代码分析"
 date:   "2016-08-29 17:50:00"
-categories: Java
-keywords: Java, Concurrent
+categories: java
+keywords: java, concurrent
 ---
 
 

@@ -2,8 +2,8 @@
 layout: post
 title:  "Netty Http Client and NIO"
 date:   "2016-09-03 00:00:00"
-categories: Netty
-keywords: Java, Netty
+categories: [nio]
+keywords: java, netty, nio
 ---
 
 
