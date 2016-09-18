@@ -1,6 +1,6 @@
 ---
 layout: post
-title: scala 字节码
+title: scala 高阶函数与字节码
 categories: [scala]
 keywords: scala
 ---
@@ -106,4 +106,127 @@ public class ClassFIle {
        1: invokespecial #24                 // Method java/lang/Object."<init>":()V
        4: return
 }
+```
+
+
+## List
+
+```flatMap
+def flatMap[B, That](f: A => GenTraversableOnce[B])(implicit bf: CanBuildFrom[Repr, B, That]): That = {
+    def builder = bf(repr) // extracted to keep method size under 35 bytes, so that it can be JIT-inlined
+    val b = builder
+    for (x <- this) b ++= f(x).seq
+    b.result
+  }
+
+def filter(p: A => Boolean): Repr = {
+    val b = newBuilder
+    for (x <- this)
+      if (p(x)) b += x
+    b.result
+  }
+  
+def collect[B, That](pf: PartialFunction[A, B])(implicit bf: CanBuildFrom[Repr, B, That]): That = {
+    val b = bf(repr)
+    for (x <- this) if (pf.isDefinedAt(x)) b += pf(x)
+    b.result
+  }
+
+def reduceLeft[B >: A](op: (B, A) => B): B = {
+    if (isEmpty)
+      throw new UnsupportedOperationException("empty.reduceLeft")
+
+    var first = true
+    var acc: B = 0.asInstanceOf[B]
+
+    for (x <- self) {
+      if (first) {
+        acc = x
+        first = false
+      }
+      else acc = op(acc, x)
+    }
+    acc
+  }
+
+```
+
+## Future
+
+```scala
+def flatMap[S](f: T => Future[S])(implicit executor: ExecutionContext): Future[S] = {
+    import impl.Promise.DefaultPromise
+    val p = new DefaultPromise[S]()
+    onComplete {
+      case f: Failure[_] => p complete f.asInstanceOf[Failure[S]]
+      case Success(v) => try f(v) match {
+        // If possible, link DefaultPromises to avoid space leaks
+        case dp: DefaultPromise[_] => dp.asInstanceOf[DefaultPromise[S]].linkRootOf(p)
+        case fut => fut.onComplete(p.complete)(internalExecutor)
+      } catch { case NonFatal(t) => p failure t }
+    }
+    p.future
+  }
+
+def map[S](f: T => S)(implicit executor: ExecutionContext): Future[S] = { // transform(f, identity)
+    val p = Promise[S]()
+    onComplete { v => p complete (v map f) }
+    p.future
+  }
+
+def recover[U >: T](pf: PartialFunction[Throwable, U])(implicit executor: ExecutionContext): Future[U] = {
+    val p = Promise[U]()
+    onComplete { v => p complete (v recover pf) }
+    p.future
+  }
+
+def recoverWith[U >: T](pf: PartialFunction[Throwable, Future[U]])(implicit executor: ExecutionContext): Future[U] = {
+    val p = Promise[U]()
+    onComplete {
+      case Failure(t) => try pf.applyOrElse(t, (_: Throwable) => this).onComplete(p.complete)(internalExecutor) catch { case NonFatal(t) => p failure t }
+      case other => p complete other
+    }
+    p.future
+  }
+```
+
+object 方法
+
+```scala
+def sequence[A, M[_] <: TraversableOnce[_]](in: M[Future[A]])(implicit cbf: CanBuildFrom[M[Future[A]], A, M[A]], executor: ExecutionContext): Future[M[A]] = {
+    in.foldLeft(Promise.successful(cbf(in)).future) {
+      (fr, fa) => for (r <- fr; a <- fa.asInstanceOf[Future[A]]) yield (r += a)
+    } map (_.result)
+  }
+
+def firstCompletedOf[T](futures: TraversableOnce[Future[T]])(implicit executor: ExecutionContext): Future[T] = {
+    val p = Promise[T]()
+    val completeFirst: Try[T] => Unit = p tryComplete _
+    futures foreach { _ onComplete completeFirst }
+    p.future
+  }
+  
+
+def find[T](futurestravonce: TraversableOnce[Future[T]])(predicate: T => Boolean)(implicit executor: ExecutionContext): Future[Option[T]] = {
+    val futures = futurestravonce.toBuffer
+    if (futures.isEmpty) Promise.successful[Option[T]](None).future
+    else {
+      val result = Promise[Option[T]]()
+      val ref = new AtomicInteger(futures.size)
+      val search: Try[T] => Unit = v => try {
+        v match {
+          case Success(r) => if (predicate(r)) result tryComplete Success(Some(r))
+          case _ =>
+        }
+      } finally {
+        if (ref.decrementAndGet == 0) {
+          result tryComplete Success(None)
+        }
+      }
+
+      futures.foreach(_ onComplete search)
+
+      result.future
+    }
+  }
 ```
