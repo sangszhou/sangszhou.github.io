@@ -12,8 +12,8 @@ Class文件是一组以8位字节为基础单位的二进制流，各数据项�
 根据Java虚拟机规范的规定，CLASS文件格式采用一种类似C语言结构体的伪结构来存储，
 这种伪结构中只有两种数据类型：无符号数和表。
 
-1. 无符号数属于基本的数据类型，以u1,u2,u4,u8来分别表示一个字节，两个字节，
-四个字节和8个字节的无符号数，无符号数用来描述数字，索引引用，数量值或按照UTF8编码构成字符串数
+1. 无符号数属于基本的数据类型，以u1,u2,u4,u8来分别表示1字节，2字节，
+4字节和8个字节的无符号数，无符号数用来描述数字，索引引用，数量值或按照 UTF8 编码构成字符串数
 
 2. 表是由多个无符号数或其他表作为数据项构成的复合数据类型，所有表都习惯性的以"_info"结尾，
 表用于描述有层次关系的复合结构的数据。整个CLASS文件本质上也是一张表
@@ -43,6 +43,7 @@ JAVA代码在进行JAVAC编译时，并不像C和C++那样有连接这一步骤�
 常量池中每一项常量都是一个表，共有11种，表开始的第一位都是一个字节的标志位，表明这个常量属于哪种类型
 
 JAVA程序中不能定义超过64KB英文字符的变量和方法名，否则无法编译. 使用JAVAP工具可以分析class文件字节码
+
 ```javap -verbose TestClass```
 
 **访问标志**
@@ -96,6 +97,140 @@ code用于存储字节码指令的一系列字节流。字节码的每个指令�
 型为catch_type的异常，就转到第handler_pc行处理。这四个参数就组成了异常表。对于finally的实现，实际上就是
 对catch字段和前面对于任意情况都运行的异常表记录
 
+### java 代码到字节码的例子
+
+```java
+public abstract class Animal {
+
+    private int legs = 0;
+
+    public abstract boolean hasLeg();
+}
+```
+
+javap - c Animal.class
+
+```java
+public abstract class play.Animal {
+  public play.Animal(); // 这个是构造函数
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+       4: aload_0
+       5: iconst_0
+       6: putfield      #2                  // Field legs:I  // 初始化
+       9: return
+
+  public abstract boolean hasLeg();
+}
+```
+
+javap -v Animal.class
+
+```java
+Constant pool:
+   #1 = Methodref          #4.#18         // java/lang/Object."<init>":()V
+   #2 = Fieldref           #3.#19         // play/Animal.legs:I
+   #3 = Class              #20            // play/Animal
+   #4 = Class              #21            // java/lang/Object
+   #5 = Utf8               legs
+   #6 = Utf8               I
+   #7 = Utf8               <init>
+   #8 = Utf8               ()V
+   #9 = Utf8               Code
+  #10 = Utf8               LineNumberTable
+  #11 = Utf8               LocalVariableTable
+  #12 = Utf8               this
+  #13 = Utf8               Lplay/Animal;
+  #14 = Utf8               hasLeg
+  #15 = Utf8               ()Z
+  #16 = Utf8               SourceFile
+  #17 = Utf8               Animal.java
+  #18 = NameAndType        #7:#8          // "<init>":()V
+  #19 = NameAndType        #5:#6          // legs:I
+  #20 = Utf8               play/Animal
+  #21 = Utf8               java/lang/Object
+{
+  public play.Animal();
+    descriptor: ()V
+    flags: ACC_PUBLIC
+    Code:
+      stack=2, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: iconst_0
+         6: putfield      #2                  // Field legs:I
+         9: return
+      LineNumberTable:
+        line 6: 0
+        line 8: 4
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      10     0  this   Lplay/Animal;
+
+  public abstract boolean hasLeg();
+    descriptor: ()Z
+    flags: ACC_PUBLIC, ACC_ABSTRACT
+}
+```
+
+```java
+public class Cat extends Animal {
+
+    static int id;
+
+    @Override
+    public boolean hasLeg() {
+        return true;
+    }
+
+    public void walk() {
+        try {
+            System.out.println("walk with leg");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+```java
+public class play.Cat extends play.Animal {
+  static int id;
+
+  public play.Cat();
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method play/Animal."<init>":()V
+       4: return
+
+  public boolean hasLeg();
+    Code:
+       0: iconst_1
+       1: ireturn
+
+  public void walk();
+    Code:
+       0: getstatic     #2                  // Field java/lang/System.out:Ljava/io/PrintStream;
+       3: ldc           #3                  // String walk with leg
+       5: invokevirtual #4                  // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       8: goto          24
+      11: astore_1
+      12: aload_1
+      13: invokevirtual #6                  // Method java/lang/NullPointerException.printStackTrace:()V
+      16: goto          24
+      19: astore_1
+      20: aload_1
+      21: invokevirtual #8                  // Method java/lang/Exception.printStackTrace:()V
+      24: return
+    Exception table:
+       from    to  target type
+           0     8    11   Class java/lang/NullPointerException
+           0     8    19   Class java/lang/Exception
+}```
+
+
 
 
 ## 类加载
@@ -131,6 +266,340 @@ JVM基于上述类加载器，通过双亲委派模型进行类的加载，当�
 比如位于rt.jar包中的类java.lang.Object，无论哪个加载器加载这个类，最终都是委托给顶层的启动类加载器进行加载，确保了Object类在各种加载器环境中都是同一个类。
 
 
+### 为什么有三个 class loader
+
+[stackoverfow](http://stackoverflow.com/questions/28011224/what-is-the-reason-for-having-3-class-loaders-in-java)
+
+The reason for having the three basic class loaders (Bootstrap, extension, system) is mostly security.
+
+Prior to version 1.2 of the JVM, there was just one default class loader, which is what is currently called the "Bootstrap" class loader.
+
+The way classes are loaded by class loaders is that each class loader first calls its parent, and if that parent 
+doesn't find the requested class, the current one is looking for it itself.
+
+A key concept is the fact that the JVM will not grant package access (the access that methods and fields have 
+if you didn't specifically mention private, public or protected) unless the class that asks for this access comes 
+from the same class loader that loaded the class it wishes to access.
+
+So, suppose a user calls his class java.lang.MyClass. Theoretically, it could get package access to all the fields 
+and methods in the java.lang package and change the way they work. The language itself doesn't prevent this. But the JVM will block this, because all the real java.lang classes were loaded by bootstrap class loader. Not the same loader = no access.
+
+There are other security features built into the class loaders that make it hard to do certain types of hacking.
+
+So why three class loaders? Because they represent three levels of trust. The classes that are most trusted are 
+the core API classes. Next are installed extensions, and then classes that appear in the classpath, which means they 
+are local to your machine.
+
+For a more extended explanation, refer to Bill Venners's "Inside the Java Virtual Machine".
+
+
+### 尝试绕过双亲委派
+
+```
+双亲委派模型在 jdk1.2 引入，但它不是一个强制性的约束模型，而是 Java 设计者推荐给开发者的一种类加载方式
+```
+换句话说，也就是可以不用这个模型的，自己实现类加载就可以，毕竟类加载器的原始作用就是：“通过类的全限定名得到类的二进制码流”
+
+[资料](http://blog.csdn.net/scythe666/article/details/51956047) 写的很好
+
+
+**由不同的类加载器加载的指定类型还是相同的类型吗**
+
+在Java中，一个类用其完全匹配类名(fully qualified class name)作为标识，这里指的完全匹配类名包括包名和类名。
+但在JVM中一个类用其全名和一个加载类ClassLoader的实例作为唯一标识，不同类加载器加载的类将被置于不同
+的命名空间.我们可以用两个自定义类加载器去加载某自定义类型（注意，不要将自定义类型的字节码放
+置到系统路径或者扩展路径中，否则会被系统类加载器或扩展类加载器抢先加载），然后用获取到的两个Class
+实例进行java.lang.Object.equals（…）判断，将会得到不相等的结果。这个大家可以写两个自定义的类加载
+器去加载相同的自定义类型，然后做个判断；同时，可以测试加载java.*类型，然后再对比测试一下测试结果。
+
+**在代码中直接调用Class.forName（String name）方法，到底会触发那个类加载器进行类加载行为**
+
+Class.forName(String name)默认会使用调用类的类加载器来进行类加载。我们直接来分析一下对应的jdk的代码：
+
+```
+//java.lang.Class.java  
+       publicstatic Class<?>forName(String className)throws ClassNotFoundException {  
+return forName0(className,true, ClassLoader.getCallerClassLoader());  
+}  
+//java.lang.ClassLoader.java  
+// Returns the invoker's class loader, or null if none.  
+static ClassLoader getCallerClassLoader() {  
+              // 获取调用类（caller）的类型  
+        Class caller = Reflection.getCallerClass(3);  
+              // This can be null if the VM is requesting it  
+       if (caller ==null) {  
+           returnnull;  
+        }  
+       //调用java.lang.Class中本地方法获取加载该调用类（caller）的ClassLoader  
+       return caller.getClassLoader0();  
+}  
+//java.lang.Class.java  
+//虚拟机本地实现，获取当前类的类加载器，前面介绍的Class的getClassLoader()也使用此方法  
+native ClassLoader getClassLoader0();  
+
+
+//java.lang.Class.java  
+       publicstatic Class<?>forName(String className)throws ClassNotFoundException {  
+return forName0(className,true, ClassLoader.getCallerClassLoader());  
+}  
+//java.lang.ClassLoader.java  
+// Returns the invoker's class loader, or null if none.  
+static ClassLoader getCallerClassLoader() {  
+              // 获取调用类（caller）的类型  
+        Class caller = Reflection.getCallerClass(3);  
+              // This can be null if the VM is requesting it  
+       if (caller ==null) {  
+           returnnull;  
+        }  
+       //调用java.lang.Class中本地方法获取加载该调用类（caller）的ClassLoader  
+       return caller.getClassLoader0();  
+}  
+//java.lang.Class.java  
+//虚拟机本地实现，获取当前类的类加载器，前面介绍的Class的getClassLoader()也使用此方法  
+native ClassLoader getClassLoader0();  
+```
+
+**在编写自定义类加载器时，如果没有设定父加载器，那么父加载器是？**
+
+前面讲过，在不指定父类加载器的情况下，默认采用系统类加载器。可能有人觉得不明白，现在我们来看一下JDK对应的代码实现。众所周知，我们编写自定义的类加载器直接或者间接继承自java.lang.ClassLoader抽象类，对应的无参默认构造函数实现如下：
+
+```
+//摘自java.lang.ClassLoader.java  
+protected ClassLoader() {  
+           SecurityManager security = System.getSecurityManager();  
+          if (security !=null) {  
+               security.checkCreateClassLoader();  
+           }  
+          this.parent = getSystemClassLoader();  
+           initialized =true;  
+}  
+
+
+//摘自java.lang.ClassLoader.java  
+protected ClassLoader() {  
+           SecurityManager security = System.getSecurityManager();  
+          if (security !=null) {  
+               security.checkCreateClassLoader();  
+           }  
+          this.parent = getSystemClassLoader();  
+           initialized =true;  
+}  
+```
+
+我们再来看一下对应的getSystemClassLoader()方法的实现:
+
+```
+privatestaticsynchronizedvoid initSystemClassLoader() {  
+           //...  
+           sun.misc.Launcher l = sun.misc.Launcher.getLauncher();  
+           scl = l.getClassLoader();  
+           //...  
+}  
+
+privatestaticsynchronizedvoid initSystemClassLoader() {  
+           //...  
+           sun.misc.Launcher l = sun.misc.Launcher.getLauncher();  
+           scl = l.getClassLoader();  
+           //...  
+}  
+```
+
+**Java虚拟机的第一个类加载器是Bootstrap，这个加载器很特殊，它不是Java类，因此它不需要被别人加载，它嵌套在Java虚拟机内核里面，也就是JVM启动的时候Bootstrap就已经启动，它是用C++写的二进制代码（不是字节码），它可以去加载别的类。**
+
+这也是我们在测试时为什么发现System.class.getClassLoader()结果为null的原因，这并不表示System这个类没有类加载器，而是它的加载器比较特殊，是BootstrapClassLoader，由于它不是Java类，因此获得它的引用肯定返回null。
+
+**委托机制的意义 — 防止内存中出现多份同样的字节码 **
+
+比如两个类A和类B都要加载System类：
+
+如果不用委托而是自己加载自己的，那么类A就会加载一份System字节码，然后类B又会加载一份System字节码，这样内存中就出现了两份System字节码。
+如果使用委托机制，会递归的向父类查找，也就是首选用Bootstrap尝试加载，如果找不到再向下。这里的System就能在Bootstrap中找到然后加载，如果此时类B也要加载System，也从Bootstrap开始，此时Bootstrap发现已经加载过了System那么直接返回内存中的System即可而不需要重新加载，这样内存中就只有一份System的字节码了。
+
+### 能不能自己写个类叫java.lang.System？
+    
+答案：通常不可以，但可以采取另类方法达到这个需求。 
+
+解释：为了不让我们写System类，类加载采用委托机制，这样可以保证爸爸们优先，爸爸们能找到的类，儿子就没有机会加载。
+而System类是Bootstrap加载器加载的，就算自己重写，也总是使用Java系统提供的System，自己写的System类根本没有机会得到加载。
+
+此外, 即便写出来了, JVM 也会报 SecurityException, 因为不让用 java.lang 包名。
+
+### 自定义类加载器
+
+```java
+public class LoaderTest {
+
+    public static void main(String[] args) {
+        try {
+            System.out.println(ClassLoader.getSystemClassLoader());
+            System.out.println(ClassLoader.getSystemClassLoader().getParent());
+            System.out.println(ClassLoader.getSystemClassLoader().getParent().getParent());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+// result
+sun.misc.Launcher$AppClassLoader@6d06d69c  
+sun.misc.Launcher$ExtClassLoader@70dea4e  
+null  
+```
+
+
+```java
+// 文件系统类加载器
+public class FileSystemClassLoader extends ClassLoader {
+    private String rootDir;
+    public FileSystemClassLoader(String rootDir) {
+        this.rootDir = rootDir;
+    }
+
+    // 获取类的字节码
+    @Override
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        byte[] classData = getClassData(name);  // 获取类的字节数组
+        if (classData == null) {
+            throw new ClassNotFoundException();
+        } else {
+            return defineClass(name, classData, 0, classData.length); // 系统函数
+        }
+    }
+
+    private byte[] getClassData(String className) {
+        // 读取类文件的字节
+        String path = classNameToPath(className);
+        try {
+            InputStream ins = new FileInputStream(path);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            int bufferSize = 4096;
+            byte[] buffer = new byte[bufferSize];
+            int bytesNumRead = 0;
+            // 读取类文件的字节码
+            while ((bytesNumRead = ins.read(buffer)) != -1) {
+                baos.write(buffer, 0, bytesNumRead);
+            }
+            return baos.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private String classNameToPath(String className) {
+        // 得到类文件的完全路径
+        return rootDir + File.separatorChar + className.replace('.', File.separatorChar) + ".class";
+    }
+}
+```
+
+如上所示，类 FileSystemClassLoader继承自类java.lang.ClassLoader。在java.lang.ClassLoader类的常用方法中，
+一般来说，自己开发的类加载器只需要覆写 findClass(String name)方法即可。java.lang.ClassLoader类的方法loadClass()封装了
+前面提到的代理模式的实现。该方法会首先调用findLoadedClass()方法来检查该类是否已经被加载过；如果没有加载过的话，会调用父类加
+载器的loadClass()方法来尝试加载该类；如果父类加载器无法加载该类的话，就调用findClass()方法来查找该类。因此，为了保证类加载器都正
+确实现代理模式，在开发自己的类加载器时，最好不要覆写 loadClass()方法，而是覆写 findClass()方法。
+
+类 FileSystemClassLoader的 findClass()方法首先根据类的全名在硬盘上查找类的字节代码文件（.class 文件），然后读取该文
+件内容，最后通过defineClass()方法来把这些字节代码转换成 java.lang.Class类的实例。
+
+```java
+public class NetworkClassLoader extends ClassLoader {  
+    private String rootUrl;  
+    public NetworkClassLoader(String rootUrl) {  
+        // 指定URL  
+        this.rootUrl = rootUrl;  
+    }  
+    // 获取类的字节码  
+    @Override  
+    protected Class<?> findClass(String name) throws ClassNotFoundException {  
+        byte[] classData = getClassData(name);  
+        if (classData == null) {  
+            throw new ClassNotFoundException();  
+        } else {  
+            return defineClass(name, classData, 0, classData.length);  
+        }  
+    }  
+
+    private byte[] getClassData(String className) {  
+        // 从网络上读取的类的字节  
+        String path = classNameToPath(className);  
+        try {  
+            URL url = new URL(path);  
+            InputStream ins = url.openStream();  
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();  
+            int bufferSize = 4096;  
+            byte[] buffer = new byte[bufferSize];  
+            int bytesNumRead = 0;  
+            // 读取类文件的字节  
+            while ((bytesNumRead = ins.read(buffer)) != -1) {  
+                baos.write(buffer, 0, bytesNumRead);  
+            }  
+            return baos.toByteArray();  
+        } catch (Exception e) {  
+            e.printStackTrace();  
+        }  
+        return null;  
+    }  
+  
+    private String classNameToPath(String className) {  
+        // 得到类文件的URL  
+        return rootUrl + "/" + className.replace('.', '/') + ".class";  
+    }  
+}  
+```
+
+在通过NetworkClassLoader加载了某个版本的类之后，一般有两种做法来使用它。第一种做法是使用Java反射API。另外一种做法是使用接口。需要注意的是，并不能直接在客户端代码中引用从服务器上下载的类，因为客户端代码的类加载器找不到这些类。使用Java反射API可以直接调用Java类的方法。而使用接口的做法则是把接口的类放在客户端中，从服务器上加载实现此接口的不同版本的类。在客户端通过相同的接口来使用这些实现类。我们使用接口的方式。示例如下：
+
+
+### 如何在运行时判断系统类加载器能加载哪些路径下的类
+
+1.  可以直接调用ClassLoader.getSystemClassLoader()或者其他方式获取到系统类加载器（系统类加载器和扩展类加载器本身都派生自URLClassLoader），调用URLClassLoader中的getURLs()方法可以获取到。
+2.  可以直接通过获取系统属性java.class.path来查看当前类路径上的条目信息 ：System.getProperty("java.class.path")。
+
+### 编写自定义类加载器时，一般有哪些注意点
+
+**一般尽量不要覆写已有的loadClass(...)方法中的委派逻辑**
+
+一般在JDK 1.2之前的版本才这样做，而且事实证明，这样做极有可能引起系统默认的类加载器不能正常工作。在JVM规范和JDK文档中（1.2或者以后版本中），都没有建议用户覆写loadClass(…)方法，相比而言，明确提示开发者在开发自定义的类加载器时覆写findClass(…)逻辑。举一个例子来验证该问题：
+
+```java
+//用户自定义类加载器WrongClassLoader.Java（覆写loadClass逻辑）  
+public class WrongClassLoader extends ClassLoader {  
+  
+    public Class<?> loadClass(String name) throws ClassNotFoundException {  
+        return this.findClass(name);  
+    }  
+  
+    protected Class<?> findClass(String name) throws ClassNotFoundException {  
+        // 假设此处只是到工程以外的特定目录D:\library下去加载类  
+        // 具体实现代码省略  
+    }  
+}  
+
+WrongClassLoader loader = new WrongClassLoader();  
+Class classLoaded = loader.loadClass("beans.Account");  
+
+// 虽然找得到 Acount, 但是无法加载 Account 的父类 Object
+java.io.FileNotFoundException: D:"classes"java"lang"Object.class (系统找不到指定的路径。)  
+
+```
+
+### 在编写自定义类加载器时，如果没有设定父加载器，那么父加载器是谁
+
+前面讲过，在不指定父类加载器的情况下，默认采用系统类加载器。可能有人觉得不明白，现在我们来看一下JDK对应的代码实现。众所周知，我们编写自定义的类加载器直接或者间接继承自java.lang.ClassLoader抽象类，对应的无参默认构造函数实现如下：
+
+```java
+System.out.println(sun.misc.Launcher.getLauncher().getClassLoader());
+// result
+sun.misc.Launcher$AppClassLoader@73d16e93  
+```
+
+所以，我们现在可以相信当自定义类加载器没有指定父类加载器的情况下，默认的父类加载器即为系统类加载器。同时，我们可以得出如下结论：即使用户自定义类加载器不指定父类加载器，那么，同样可以加载如下三个地方的类：
+1. <Java_Runtime_Home>/lib下的类；
+2. < Java_Runtime_Home >/lib/ext下或者由系统变量java.ext.dir指定位置中的类；
+3. 当前工程类路径下或者由系统变量java.class.path指定位置中的类。
+
+[详细介绍类加载器](http://blog.csdn.net/zhoudaxia/article/details/35824249)
+资料 [写的不错](http://blog.csdn.net/zshake/article/details/49491619)
 ### 验证
 
 为了确保Class文件符合当前虚拟机要求，需要对其字节流数据进行验证，主要包括格式验证、元数据验证、字节码验证和符号引用验证。
