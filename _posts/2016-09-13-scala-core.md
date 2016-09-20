@@ -230,3 +230,139 @@ def find[T](futurestravonce: TraversableOnce[Future[T]])(predicate: T => Boolean
     }
   }
 ```
+
+## 无参函数
+
+无参方法的惯例是:
+1. 方法没有参数
+2. 方法不会改变可变状态(无副作用)
+
+这个惯例支持统一访问原则(uniform access principal), 客户代码不应由属性是字段实现还是方法实现而受到影响
+
+```scala
+abstract class A { def a: Int }
+class B extends A { val a = 1 } // 里面的 val 可以写成 var
+```
+
+当然 val 成员也可以在子类中被 override
+
+```scala
+class A { val a = 2}
+clas B extends A { override val a = 3 }
+```
+
+但父类中成员声明为var则子类用val重写是不行的，因为var提供了getter/setter，而val只有getter:
+
+如果一个类中，出现了同名的 成员变量和无参函数，则编译时会报错（有参则没有问题），这点与java不同。
+
+java中有4个命名空间：
+
+> 包, 类型, 方法, 字段
+
+方法与字段是不同的命名空间，所以字段与方法同名是不会冲突的。
+
+
+而scala中仅有2个命名空间：
+
+> 值（字段/方法/包/单例）
+
+> 类型（类/特质）
+
+所以在scala可以实现用val重写无参方法这种事情。
+
+不过把字段、方法、单例 放在同一个命名空间还好理解，但“包”也与它们在同一个命名空间是怎么回事？
+
+scala里包与字段和方法共享相同命名空间是为了让你引入包，而不仅仅是引入类型名以及单例对象的字段和方法。这点也与java不同，java只能import一个包下的类。
+
+```scala
+import java.{util => u} 
+
+class A {
+  val a = new u.ArrayList[String](); 
+  def u = 2 //命名冲突
+}
+```
+
+原则上，scala中的函数都可以省略空括号，然而在调用的方法超出其调用者对象的属性时，推荐仍保持空括号。
+
+比如，方法执行了I/O, 或有改变可变状态，或读取了不是调用者字段的var，总之无论是直接还是非直接的使用可变对象
+
+### def fun = 1 和 def fun() = 1 的区别
+
+```scala
+def foo() = println("h")
+foo // 等同于 foo()
+
+def bar = println("hi")
+bar // hi
+bar() // error Unit does not take parameters
+```
+
+bar() 实际被翻译为 bar.apply(), 但是 bar 的返回值为 Unit, 他没有 apply 方法, 所以就报错了
+
+```scala
+class MyClass { def apply() = println("haha") }
+
+def m = new MyClass
+m // MyClass@xxx
+m() // haha
+```
+
+### 字节码
+
+```scala
+class Foo {
+  def bar() = 123;
+}
+
+
+class Foo {
+  def bar = 123;
+}
+```
+
+Foo, Bar 的字节码是一样的, 额外的信息放到了常量池里面
+$ javap -verbose Foo.class
+
+```
+const #195 = Asciz      ScalaSig;
+const #196 = Asciz      Lscala/reflect/ScalaSignature;;
+const #197 = Asciz      bytes;
+const #198 = Asciz      ^F^A!3A!^A^B^A^S\t\tb)^[7f^Y^Vtw\r^^5DQ^V^\7.^Z:^K^E\r!^
+Q^A^B4jY^VT!!^B^D^B^UM^\^W\r\1tifdWMC^A^H^....
+```
+
+### Function0 和无参构造器
+
+```scala
+def withFunction(f: => Int): Unit = {
+    f
+}
+
+def withFunction2(f: () => Int) = {
+    f()
+}
+
+def withFunction3(f: () => Int): ()=> Int = {
+    f
+}
+
+public void withFunction(scala.Function0<java.lang.Object>);
+    Code:
+       0: aload_1
+       1: invokeinterface #16,  1           // InterfaceMethod scala/Function0.apply$mcI$sp:()I
+       6: pop
+       7: return
+
+public int withFunction2(scala.Function0<java.lang.Object>);
+    Code:
+       0: aload_1
+       1: invokeinterface #16,  1           // InterfaceMethod scala/Function0.apply$mcI$sp:()I
+       6: ireturn
+```
+
+with Function 一般是用来接收 ```{xxx}``` 这种语法块的
+
+对于 withFunction 函数, 即可接收 withFunction 又可接收 def m() 又可以接收 def m, 但是 withFunction2 仅接受 def m()
+
+看字节码又都一样, 实在 confusing

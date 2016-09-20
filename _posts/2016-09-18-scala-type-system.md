@@ -1,3 +1,10 @@
+---
+layout: post
+title: scala type system
+categories: [scala]
+keywords: scala, type
+---
+
 ## 什么是静态类型
 
 编译器可以 静态地 （在编译时）验证程序是合理的。也就是说，如果值（在运行时）不符合程序规定的约束，编译将失败。
@@ -8,9 +15,7 @@
 
 在 scala 中, 根据 Container 的不同声明, 协变, 逆变和不变给出不同的答案
  
-首先是 **协变**
-
-Container[T'] 是 Container[T] 的子类型
+首先是 **协变**, 它认为 Container[T'] 是 Container[T] 的子类型
 
 ```scala
 class Container[+T]
@@ -18,6 +23,38 @@ class Container[+T]
 
 val cv: Container[AnyRef] = new Container[String]
 ```
+
+
+**immutable should be covariance, mutable should invariance**
+
+```scala
+// 不可变
+val dogs: List[Dogs] = List(new Dog)
+val animals: List[Animal] = dogs
+
+val moreAnimals = (new Cat) :: animals 
+
+// 可变, java
+List<Dog> dogs = new List(new Dog)
+List<Animal> animals = dogs
+animals.add(new Cat)
+
+dogs.bark() // cat cannot bark
+```
+从上面的例子看出, 可变不能是 covariance 的。因为 immutable 每次都返回一个新的东西, 不会改变原始的东西, 所以没有问题
+
+要注意variance并不会被继承，父类声明为variance，子类如果想要保持，仍需要声明
+
+covariance 对类型定义的要求:
+
+```scala
+class MyList[+T] {
+  def  addMore[B >: T](b: B): MyList[B] = {
+    this
+  }
+}
+```
+这段代码不能让 B 是 T 的子类型, 原因忘记了(好像和 function 有关系) @todo
 
 其次是 **逆变**
 
@@ -39,28 +76,73 @@ def tweet2: Animal => ArrayList
 
 tweet 就是 tweet2 的子类, 因为根据里氏替换原则, 凡是 tweet 能存在的地方, tweet2 都能存在。
 
-**immutable should be covariance, mutable should invariance**
+java8 的函数似乎是没有 invariance 的
+
+### 逆变点与协变点
+
+[参考](http://hongjiang.info/scala-pitfalls-10/)
 
 ```scala
-// 不可变
-val dogs: List[Dogs] = List(new Dog)
-val animals: List[Animal] = dogs
+class In[+A]{ def fun(x:A){} } // wrong
 
-val moreAnimals = (new Cat) :: animals 
+error: covariant type A occurs in contravariant position in type A of value x
+class In[+A]{def fun(x:A){}}
 
-// 可变, java
-List<Dog> dogs = new List(new Dog)
-List<Animal> animals = dogs
-animals.add(new Cat)
-
-dogs.bark() // cat cannot bark
+class In[-A]{ def fun(x:A){} } // correct
 ```
-从上面的例子看出, 可变不能是 covariance 的。因为 immutable 每次都返回一个新的东西, 不会改变原始的东西, 所以没有问题
+
+要解释清楚这个问题，需要理解协变点(covariant position) 和 逆变点(contravariant position)
+
+首先，我们假设 class In[+A]{ def fun(x:A){} } 可以通过编译，那么对于 In[AnyRef] 和 In[String] 这两个父子类型来说，fun方法分别对应：
+
+```scala
+父类型 In[AnyRef] 中的方法 fun(x: AnyRef){}
+子类型 In[String] 中的方法 fun(x: String){}
+```
+
+根据里氏替换原则，所有使用父类型对象的地方都可以换成子类型对象。现在问题就来了，假设这样使用了父类：
+
+```scala
+father.fun(notString)
+child.fun(notString) // 失败，非String类型，不接受
+```
+
+之前父类型的 fun 可以接收 AnyRef类型的参数，是一个更广的范围。而子类型的 fun 却只能接收String这样更窄的范围。
+显然这不符合里氏替换原则了，因为父类做的事情，子类不能完全胜任，只能部分满足，是无法代替父类型的。
+
+所以要想符合里氏替换，子类型中的fun函数参数类型必须是父类型中函数参数的超类（至少跟父类型中的参数类型一致），这样才能满足父类中fun方法可以做的事情，子类中fun方法也都可以做。
+
+正是因为需要符合里氏替换法则，方法中的参数类型声明时必须符合逆变（或不变），
+以让子类方法可以接收更大的范围的参数(处理能力增强)；而不能声明为协变，子类方法可接收的范围是父类中参数类型的子集(处理能力减弱)。
+
+上面说的是参数, 下面说的是返回值, 方法返回值的位置称为协变点(covariant position)
+
+```scala
+// 方法返回值类型可以是协变的
+scala> class In[+A]{ def fun(): A = null.asInstanceOf[A] }
+defined class In
+
+// 方法返回值类型不能是逆变的
+scala> class In[-A]{ def fun(): A = null.asInstanceOf[A] }
+<console>:8: error: contravariant type A occurs in covariant position in type ()A of method fun
+```
+
+利用 Function 的思路来考虑
+
+```scala
+class In[+A]{ def fun(): A = null.asInstanceOf[A] }
+Unit => A Function1[Unit, +A] 符合 Function 定义
+
+class In[-A] { def fun(x: A) {} } 
+我们完全可以把它看做一个函数类型，即 A => Unit 与 Function1[-A, Unit]等价，而
+
+class In[+A]{ def fun(): A = null.asInstanceOf[A] }
+则与 Function0[+A] 等价。
+```
 
 ## 边界
 
 ```scala
-
 class ObjectPool[T <: Connection] // scala
 class ObjectPool[T >: Nothing] // scala
 class ObjectPool[Nothing <: T <: Connection] // scala
@@ -75,9 +157,18 @@ def ::[B >: A] (x: B): List[B] = new scala.collection.immutable.::(x, this)
 
 val options: List[String] = List("")
 1 :: options // 返回的是 List[Any], 我想这可能是因为发生了类型提示, 不然 int 不会是 String 的父类型
+
+上面就无法恢复类型了
+
+// java8 list 也支持 nil, cons 了
+
+class List<E> {
+   static <Z> List<Z> nil() { ... };
+   static <Z> List<Z> cons(Z head, List<Z> tail) { ... };
+   E head() { ... }
+}
 ```
 
-无法恢复类型
 
 
 
@@ -109,13 +200,14 @@ class Container[A <% Int] { def addIt(x: A) = 123 + x }
 
 ```scala
 sum[B >: A](implicit num: Numeric[B]): B
-```
-
-如果你调用List(1,2).sum()，你并不需要传入一个 num 参数；它是隐式设置的。但如果你调用List("whoop").sum()，它会抱怨无法设置num。
-
 
 ```
 
+如果你调用List(1,2).sum()，你并不需要传入一个 num 参数, 它是隐式设置的。但如果你调用List("whoop").sum()，它会抱怨无法设置num。
+
+
+```
+// 用于修饰 implicit 类型
 A =:= B	A 必须和 B相等
 A <:< B	A 必须是 B的子类
 A <%< B	A 必须可以被看做是 B
@@ -132,9 +224,7 @@ class Container[A](value: A) { def addIt(implicit evidence: A <%< Int) = 123 + v
 
 ```scala
 def min[B >: A](implicit cmp: Ordering[B]): A = {
-  if (isEmpty)
-    throw new UnsupportedOperationException("empty.min")
-
+  if (isEmpty) throw new UnsupportedOperationException("empty.min")
   reduceLeft((x, y) => if (cmp.lteq(x, y)) x else y)
 }
 ```
@@ -165,10 +255,10 @@ class MyContainer extends Container[MyContainer] {
   def compare(that: MyContainer) = 0 
 }
 
-(new MyContainer, new MyContainer, new MyContainer, new YourContainer).min // 还是会报错
+(new MyContainer, new MyContainer, new MyContainer, new YourContainer).min // 还是会报错...
 ```
 
-最后一个问题怎么解决呢?
+这个问题怎么解决呢? @todo
 
 ## implicit
 
@@ -333,8 +423,9 @@ trait CanBuildFrom[-From, -Elem, +To] {
 
 Repr 是当前集合的类型, 比如 List, Map 什么的, That 是新集合的类型, 比如 Repr 是 List[Int] 时, That 可以是 Map
 
-结合两段代码分析, 上面那段代码要求 b: CanBuildFrom[Nothing, T, To] 其实是放宽了要求, 任何 CanBuildFrom[_, (String, String), To] 都是它的子类,
-相当于这里放宽了条件。breakout 生成的 CanBuildFrom[List, (String, String), Map] 调用 apply 方法就会返回 Builder[(String, String), Map]
+结合两段代码分析, 上面那段代码要求 b: CanBuildFrom[Nothing, T, To] 其实是放宽了要求, 把三个类型的约束转成了两个。
+任何 CanBuildFrom[_, (String, String), To] 都是它的子类,相当于这里放宽了条件。
+breakout 生成的 CanBuildFrom[List, (String, String), Map] 调用 apply 方法就会返回 Builder[(String, String), Map]
 
 ```scala
   def newBuilder[A, B]: Builder[(A, B), CC[A, B]] = new MapBuilder[A, B, CC[A, B]](empty[A, B])
