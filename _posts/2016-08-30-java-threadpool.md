@@ -227,6 +227,8 @@ void purge
 
 ### Schedule 流程
 
+scheduleAtFixedRate 的要点就是什么时候把下一个要执行的任务放到队列中 
+
 ```java
 ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initiaDelay, long period, TimeUnit unit)
   ScheduledFutureTask<Void> sft = new ScheduledFutureTask(command, null, triggerTime(initiaDelay, unit), NANOSECONDS)
@@ -274,10 +276,14 @@ void run
     ScheduledFutureTask.super.run
   else if(ScheduledFutureTask.super.runAndRest)
     setNextRunTime
-    reExecutePeridic
+    reExecutePeriodic
 ```
 
-periodic 和 非 periodic 的区别是执行 run 还是 runAndReset, 对于单次任务，执行完毕后就结束了，对于循环逻辑，此次执行完毕后再把自己放回到任务队列中。因为 ScheduledFutureTask 是 FutureTask 的子类，一旦 runnable 执行完毕，state 就会发生变化，不能被执行两次。为了避免再次创建 FutureTask 的开销，就直接重用自己，这也是 runAndReset 的意义，不调用 set(Result) 所以 State 也不会变。此外，因为循环调用的方法都是没有返回值的，所以也没有 set result 的必要。
+periodic 和 非 periodic 的区别是执行 run 还是 runAndReset, 对于单次任务，执行完毕后就结束了，对于循环逻辑，此次执行完毕后再把自己放回到任务队列中。因为 ScheduledFutureTask 是 FutureTask 的子类，
+一旦 runnable 执行完毕，state 就会发生变化，此变化是不可逆的, 不能被执行两次。为了避免再次创建 FutureTask 的开销，就直接重用自己，这也是 runAndReset 的意义，不调用 set(Result) 所以 State 也不会变。
+此外，因为循环调用的方法都是没有返回值的，所以也没有 set result 的必要。
+
+FutureTask 的 run 方法会先检查自己的状态, 完成后修改状态, runAndSet 完成后不修改状态。至于为什么用 FutureTask 我想是重用吧, 从 runAndSet 的注释上也可以看出来。
 
 ```java
 void ScheduledFutureTask.setNextRunTime
@@ -292,6 +298,7 @@ void reExecutePeridic(RunnableScheduledFuture task)
       task.cancel(false)
     else ensurePrestart
 ```
+
 ScheduledFutureTask 是 ScheduledThreadPool 的内部类，在ScheduledFutureTask 中调用 ScheduledThreadPool 的方法也不需要指明实例变量。为了区分函数的所属类，显示标注了 setNextRunTime 是 ScheduledFutureTask 的函数。
 
-注意 Queue 并没有使用 DelayQueue, 而是自己的实现，不知道为什么。
+<!--注意 Queue 并没有使用 DelayQueue, 而是自己的实现，不知道为什么。-->

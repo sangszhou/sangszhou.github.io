@@ -6,6 +6,11 @@ categories: java
 keywords: java, concurrent, blockingQueue
 ---
 
+@todo update
+
+1. poll 应该放到 offer 前面写
+2. DelayedQueue 和 Blocking queue 一起写, 并总结子类的用途
+
 DelayedQueue 中的元素类型为 `? extends Delayed`, 也就说 queue 内的元素在 getDelay 返回 0 时才有效，
 在 getDelay > 0 时尝试获取元素的请求都将被阻塞或返回空
 

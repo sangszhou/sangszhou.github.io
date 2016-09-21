@@ -2,8 +2,8 @@
 layout: post
 title:  "Kafka walk through"
 date:   "2016-09-12 00:00:00"
-categories: Kafka
-keywords: Kafka
+categories: kafka
+keywords: kafka
 ---
 
 ## 使用命令行运行 Producer, Consumer
