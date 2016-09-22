@@ -6,6 +6,8 @@ categories: java
 keywords: java, io
 ---
 
+@todo 内存泄漏应该放在这里
+
 ## Java 内存划分
 
 ![](/images/posts/javamem/memdis.png)
@@ -52,7 +54,7 @@ keywords: java, io
 一起这种问题
 
 ### java 堆溢出
-创建大量的对象并且生命周期都很长的情况下回隐去 OOM
+创建大量的对象并且生命周期都很长的情况下会 OOM
 
 ### 运行时常量区溢出
 OOM PermGen space. 典型的例子就是 String.intern 方法
@@ -69,11 +71,11 @@ OOM PermGen space. 典型的例子就是 String.intern 方法
 
 **复制算法**:
 将内存分为 from, to 两个区域, 垃圾回收时把 from 区存活的对象移动到 to 区
-新生代中的对象大部分存活期很短, 可以把内存分为较大的 eden 空间和较小的 survivor
+新生代中的对象大部分存活期很短, 可以把内存分为较大的 eden 空间和两块较小的 survivor
 空间, 每次使用 eden 和其中的一块 survivor。回收时, 把 eden 和一块 survivor 存活
 的对象拷贝到另一块 survivor 区。默认的 eden 和 survivor 是 8:1。回收时,当 survivor
- 的空间不够用时, 需要依赖其他内存(老年代)进行分配担保。因为没有内存区为老年代分配担保,
- 所以老年去不能用复制算法
+的空间不够用时, 需要依赖其他内存(老年代)进行分配担保。因为没有内存区为老年代分配担保,
+所以老年去不能用复制算法
  
 **标记整理算法**:
 让所有存活的对象向一端移动,然后直接清理掉边界以外的内存
