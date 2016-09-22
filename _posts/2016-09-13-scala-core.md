@@ -83,8 +83,8 @@ public class ConcreteEmpty extends Empty {
 
 ## 高阶函数
 
-```
-class ClassFIle {
+```scala
+class ClassFile {
 
   def highOrder(f: Int => Int) = {
     f(1)
@@ -111,30 +111,26 @@ public class ClassFIle {
 
 ## List
 
-```flatMap
+```scala
 def flatMap[B, That](f: A => GenTraversableOnce[B])(implicit bf: CanBuildFrom[Repr, B, That]): That = {
     def builder = bf(repr) // extracted to keep method size under 35 bytes, so that it can be JIT-inlined
     val b = builder
     for (x <- this) b ++= f(x).seq
     b.result
-  }
 
 def filter(p: A => Boolean): Repr = {
     val b = newBuilder
     for (x <- this)
       if (p(x)) b += x
     b.result
-  }
   
 def collect[B, That](pf: PartialFunction[A, B])(implicit bf: CanBuildFrom[Repr, B, That]): That = {
     val b = bf(repr)
     for (x <- this) if (pf.isDefinedAt(x)) b += pf(x)
     b.result
-  }
 
 def reduceLeft[B >: A](op: (B, A) => B): B = {
-    if (isEmpty)
-      throw new UnsupportedOperationException("empty.reduceLeft")
+    if (isEmpty) throw new UnsupportedOperationException("empty.reduceLeft")
 
     var first = true
     var acc: B = 0.asInstanceOf[B]
@@ -148,7 +144,6 @@ def reduceLeft[B >: A](op: (B, A) => B): B = {
     }
     acc
   }
-
 ```
 
 ## Future
@@ -156,8 +151,8 @@ def reduceLeft[B >: A](op: (B, A) => B): B = {
 ```scala
 def flatMap[S](f: T => Future[S])(implicit executor: ExecutionContext): Future[S] = {
     import impl.Promise.DefaultPromise
-    val p = new DefaultPromise[S]()
-    onComplete {
+    val p = new DefaultPromise[S]() 
+    onComplete { // this.onComplete
       case f: Failure[_] => p complete f.asInstanceOf[Failure[S]]
       case Success(v) => try f(v) match {
         // If possible, link DefaultPromises to avoid space leaks
@@ -190,7 +185,7 @@ def recoverWith[U >: T](pf: PartialFunction[Throwable, Future[U]])(implicit exec
   }
 ```
 
-object 方法
+**object Future 方法**
 
 ```scala
 def sequence[A, M[_] <: TraversableOnce[_]](in: M[Future[A]])(implicit cbf: CanBuildFrom[M[Future[A]], A, M[A]], executor: ExecutionContext): Future[M[A]] = {
@@ -234,6 +229,7 @@ def find[T](futurestravonce: TraversableOnce[Future[T]])(predicate: T => Boolean
 ## 无参函数
 
 无参方法的惯例是:
+
 1. 方法没有参数
 2. 方法不会改变可变状态(无副作用)
 

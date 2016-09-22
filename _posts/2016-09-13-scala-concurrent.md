@@ -12,8 +12,8 @@ keywords: scala
 
 
 ## Actor
-### 生命周期
 
+### 生命周期
 
 
 ### 特殊的 Actor
@@ -45,8 +45,11 @@ Threadpool 有两种, fork-join-pool 和 thread-pool-executor
 Dispatcher 默认有 4 种
 
 > Dispatcher: 默认的, 事件驱动, 将一组 actor 绑定到一个线程组中, 共享线程
+
 > PinnedDispatcher: 一个 actor 一个线程, 线程不共享
+
 > BalancingDispatcher: 所有的 actor 共享一个 mailbox, 任务繁重的 actor 会把一些任务分派到空闲的 actor 上
+
 > CallingThreadDispatcher: 仅在当前线程执行 invocation, 用于测试
 
 default-mailbox: 无限大的邮箱 
