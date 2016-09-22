@@ -362,3 +362,84 @@ with Function 一般是用来接收 ```{xxx}``` 这种语法块的
 对于 withFunction 函数, 即可接收 withFunction 又可接收 def m() 又可以接收 def m, 但是 withFunction2 仅接受 def m()
 
 看字节码又都一样, 实在 confusing
+
+### loan pattern
+
+loan pattern 往往包括一个函数作为变量, 在函数体内创建资源, 资源作为函数的参数, 使用资源, 然后释放资源
+
+```scala
+def writeFile(fileName: File)(operation: PrintWriter => Unit) { 
+    val writer = new PrintWriter(fileName)  // 贷出资源writer 
+  
+    try{ 
+        operation(pw)   // 客户使用资源 
+    }finally { 
+        writer.close()  // 用完则释放被回收 
+    } 
+} 
+```
+
+### cake pattern
+
+cake pattern 是依赖注入, scala 的答案, 其实它本身也很简单
+
+名字的由来:
+
+蛋糕有很多风味， 你可以根据你的需要增加相应的风味。依赖注入就是增加调料。
+
+蛋糕有很多层 (layer)。如果你想要一个更大的蛋糕你就可以增加更多的层。
+
+
+```java
+abstract class BarUsingFooAble {
+  def bar() = "bar calls foo: " + foo.foo()
+  def foo:FooAble //abstract 
+}
+
+object Main {
+  def main(args: Array[String]) {
+    val fooable = new FooAble {}
+    val barWithFoo = new BarUsingFooAble{
+      def foo: FooAble = fooable 
+    }
+    println(barWithFoo.bar())
+  }
+}
+```
+
+```java
+class BarUsingFooAble {
+  this: FooAble => //see note #1 self-annotation
+  def bar() = "bar calls foo: " + foo()
+}
+
+object Main {
+  def main(args: Array[String]) {
+    val barWithFoo = new BarUsingFooAble with FooAble
+    println(barWithFoo.bar())
+  }
+}
+```
+
+```scala
+trait UserRepositoryComponent {
+  val userRepository:UserRepository
+}
+
+trait UserServiceComponent {
+  this: UserRepositoryComponent =>
+  val userService: UserService
+}
+```
+
+这里使用 self-type annotation 声明 UserServiceComponent 需要 UserRepositoryComponent ( this: UserRepositoryComponent => )。 如果需要多个依赖，可以使用下面的格式:
+
+```scala
+object ComponentRegistry extends UserServiceComponent with UserRepositoryComponent {
+  override val userRepository: UserRepository = new MockUserRepository
+  override val userService: UserService = new UserService(userRepository)
+}
+```
+
+这还有一个好处就是所有的对象都是 val 类型的。
+

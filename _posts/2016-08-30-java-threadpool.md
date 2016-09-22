@@ -6,8 +6,6 @@ categories: java
 keywords: java, concurrent
 ---
 
-
-
 ### 正常逻辑，处理任务并退出
 
 ```java
