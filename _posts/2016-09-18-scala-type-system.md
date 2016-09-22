@@ -7,9 +7,11 @@ keywords: scala, type
 
 ## 什么是静态类型
 
-编译器可以 静态地 （在编译时）验证程序是合理的。也就是说，如果值（在运行时）不符合程序规定的约束，编译将失败。
+编译器可以静态地（在编译时）验证程序是合理的。也就是说，如果值（在运行时）不符合程序规定的约束，编译将失败
 
 ## Variance(变性)
+
+为什么 java 没有协变逆变的说法, 这是因为在 java 中函数不作为变量(逆变), 且 java 类型往往是 mutable 的(协变往往是 immutable的)
 
 当一个类型 T' 是 T 的子类型时, Container[T'] 是不是 Container[T] 的子类型?
 
@@ -182,7 +184,7 @@ def count(l: List[T forSome { type T }]) = l.size // 这样写就麻烦了
 def hashcodes(l: Seq[_ <: AnyRef]) = l map (_.hashCode)
 ```
 
-## 视界
+## 视界 (view bound)
 
 一个视界指定一个类型可以被“看作是”另一个类型, 往往通过隐式类型转换完成
 
@@ -199,7 +201,7 @@ class Container[A <% Int] { def addIt(x: A) = 123 + x }
 相反，要使之能工作，Scala的math库对适当的类型T 定义了一个隐含的Numeric[T]。 然后在List定义中使用它：
 
 ```scala
-sum[B >: A](implicit num: Numeric[B]): B
+sum[B >: A](implicit num: Numeric[B]): B // context bound
 
 ```
 
@@ -233,6 +235,8 @@ def min[B >: A](implicit cmp: Ordering[B]): A = {
 2. 无需任何额外的库支持，你也可以定义自己的排序：
 
 ## F 界多态性
+
+解决泛型继承的问题
 
 ```scala
 trait Container extends Ordered[Container]

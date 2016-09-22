@@ -87,9 +87,9 @@ Another interesting feature delivered by Java 8 is that interfaces can declare (
 static methods. Here is an example.
 
 ```java
-private interface DefaulableFactory {
+private interface DefaultableFactory {
     // Interfaces now allow static methods
-    static Defaulable create( Supplier< Defaulable > supplier ) {
+    static Defaultable create( Supplier< Defaultable > supplier ) {
         return supplier.get();
     }
 }
@@ -110,12 +110,14 @@ Please notice that the method accepts exactly one parameter of type Car.
 
 ```java
 cars.forEach( Car::collide );
+//static collide(car)
 ```
 
 The third type is reference to instance method of arbitrary object of specific type with the syntax Class::method. Please notice, no arguments are accepted by the method.
 
 ```java
 cars.forEach( Car::repair );
+//car.repair
 ```
 
 And the last, fourth type is reference to instance method of particular class instance the syntax instance::method. 
@@ -124,6 +126,7 @@ Please notice that method accepts exactly one parameter of type Car.
 ```java
 final Car police = Car.create( Car::new );
 cars.forEach( police::follow );
+//police.follow(car)
 ```
 
 
