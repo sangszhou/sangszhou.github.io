@@ -18,6 +18,9 @@ Class文件是一组以8位字节为基础单位的二进制流，各数据项�
 2. 表是由多个无符号数或其他表作为数据项构成的复合数据类型，所有表都习惯性的以"_info"结尾，
 表用于描述有层次关系的复合结构的数据。整个CLASS文件本质上也是一张表
 
+
+![](/images/posts/javavm/classinfo_pic.png)
+
 魔数 (magic)(4个字节) 0xCAFEBABE, 次版本号(2个字节), 主版本号(2个字节)
 
 常量计数器 (2个字节) 从 1 开始算, 0x0016，十进制为22，代表有21个常量, 索引为 1~21
@@ -228,9 +231,24 @@ public class play.Cat extends play.Animal {
        from    to  target type
            0     8    11   Class java/lang/NullPointerException
            0     8    19   Class java/lang/Exception
-}```
+}
+```
 
 
+```java
+
+static int id = 0; // 对应的字节码 
+
+static <clinit>()V
+   L0
+    LINENUMBER 8 L0
+    ICONST_0
+    PUTSTATIC overflow/Cat.id : I
+    RETURN
+    MAXSTACK = 1
+    MAXLOCALS = 0
+
+```
 
 
 ## 类加载
@@ -316,44 +334,46 @@ For a more extended explanation, refer to Bill Venners's "Inside the Java Virtua
 
 Class.forName(String name)默认会使用调用类的类加载器来进行类加载。我们直接来分析一下对应的jdk的代码：
 
-```
+```java
 //java.lang.Class.java  
-       publicstatic Class<?>forName(String className)throws ClassNotFoundException {  
-return forName0(className,true, ClassLoader.getCallerClassLoader());  
+public static Class<?>forName(String className)throws ClassNotFoundException {  
+    return forName0(className,true, ClassLoader.getCallerClassLoader());  
 }  
+
 //java.lang.ClassLoader.java  
 // Returns the invoker's class loader, or null if none.  
 static ClassLoader getCallerClassLoader() {  
-              // 获取调用类（caller）的类型  
-        Class caller = Reflection.getCallerClass(3);  
-              // This can be null if the VM is requesting it  
+       // 获取调用类（caller）的类型  
+       Class caller = Reflection.getCallerClass(3);  
+       // This can be null if the VM is requesting it  
        if (caller ==null) {  
-           returnnull;  
+           return null;  
         }  
        //调用java.lang.Class中本地方法获取加载该调用类（caller）的ClassLoader  
        return caller.getClassLoader0();  
 }  
+
 //java.lang.Class.java  
 //虚拟机本地实现，获取当前类的类加载器，前面介绍的Class的getClassLoader()也使用此方法  
 native ClassLoader getClassLoader0();  
 
-
 //java.lang.Class.java  
-       publicstatic Class<?>forName(String className)throws ClassNotFoundException {  
-return forName0(className,true, ClassLoader.getCallerClassLoader());  
+public static Class<?>forName(String className) throws ClassNotFoundException {  
+    return forName0(className,true, ClassLoader.getCallerClassLoader());  
 }  
 //java.lang.ClassLoader.java  
 // Returns the invoker's class loader, or null if none.  
 static ClassLoader getCallerClassLoader() {  
-              // 获取调用类（caller）的类型  
-        Class caller = Reflection.getCallerClass(3);  
-              // This can be null if the VM is requesting it  
+       // 获取调用类（caller）的类型  
+       Class caller = Reflection.getCallerClass(3);  
+       // This can be null if the VM is requesting it  
        if (caller ==null) {  
-           returnnull;  
-        }  
+           return null;  
+       }  
        //调用java.lang.Class中本地方法获取加载该调用类（caller）的ClassLoader  
        return caller.getClassLoader0();  
 }  
+
 //java.lang.Class.java  
 //虚拟机本地实现，获取当前类的类加载器，前面介绍的Class的getClassLoader()也使用此方法  
 native ClassLoader getClassLoader0();  
@@ -363,52 +383,34 @@ native ClassLoader getClassLoader0();
 
 前面讲过，在不指定父类加载器的情况下，默认采用系统类加载器。可能有人觉得不明白，现在我们来看一下JDK对应的代码实现。众所周知，我们编写自定义的类加载器直接或者间接继承自java.lang.ClassLoader抽象类，对应的无参默认构造函数实现如下：
 
-```
+```java
 //摘自java.lang.ClassLoader.java  
 protected ClassLoader() {  
-           SecurityManager security = System.getSecurityManager();  
+          SecurityManager security = System.getSecurityManager();  
           if (security !=null) {  
                security.checkCreateClassLoader();  
-           }  
+          }  
           this.parent = getSystemClassLoader();  
-           initialized =true;  
-}  
-
-
-//摘自java.lang.ClassLoader.java  
-protected ClassLoader() {  
-           SecurityManager security = System.getSecurityManager();  
-          if (security !=null) {  
-               security.checkCreateClassLoader();  
-           }  
-          this.parent = getSystemClassLoader();  
-           initialized =true;  
+          initialized =true;  
 }  
 ```
 
 我们再来看一下对应的getSystemClassLoader()方法的实现:
 
-```
+```java
 privatestaticsynchronizedvoid initSystemClassLoader() {  
            //...  
            sun.misc.Launcher l = sun.misc.Launcher.getLauncher();  
            scl = l.getClassLoader();  
            //...  
-}  
-
-privatestaticsynchronizedvoid initSystemClassLoader() {  
-           //...  
-           sun.misc.Launcher l = sun.misc.Launcher.getLauncher();  
-           scl = l.getClassLoader();  
-           //...  
-}  
+}
 ```
 
 **Java虚拟机的第一个类加载器是Bootstrap，这个加载器很特殊，它不是Java类，因此它不需要被别人加载，它嵌套在Java虚拟机内核里面，也就是JVM启动的时候Bootstrap就已经启动，它是用C++写的二进制代码（不是字节码），它可以去加载别的类。**
 
 这也是我们在测试时为什么发现System.class.getClassLoader()结果为null的原因，这并不表示System这个类没有类加载器，而是它的加载器比较特殊，是BootstrapClassLoader，由于它不是Java类，因此获得它的引用肯定返回null。
 
-**委托机制的意义 — 防止内存中出现多份同样的字节码 **
+**委托机制的意义 — 防止内存中出现多份同样的字节码**
 
 比如两个类A和类B都要加载System类：
 
@@ -594,12 +596,16 @@ sun.misc.Launcher$AppClassLoader@73d16e93
 ```
 
 所以，我们现在可以相信当自定义类加载器没有指定父类加载器的情况下，默认的父类加载器即为系统类加载器。同时，我们可以得出如下结论：即使用户自定义类加载器不指定父类加载器，那么，同样可以加载如下三个地方的类：
+
 1. <Java_Runtime_Home>/lib下的类；
+
 2. < Java_Runtime_Home >/lib/ext下或者由系统变量java.ext.dir指定位置中的类；
+
 3. 当前工程类路径下或者由系统变量java.class.path指定位置中的类。
 
 [详细介绍类加载器](http://blog.csdn.net/zhoudaxia/article/details/35824249)
 资料 [写的不错](http://blog.csdn.net/zshake/article/details/49491619)
+
 ### 验证
 
 为了确保Class文件符合当前虚拟机要求，需要对其字节流数据进行验证，主要包括格式验证、元数据验证、字节码验证和符号引用验证。
@@ -771,6 +777,8 @@ class Dog {
 栈帧(StackFrame)是用于支持虚拟机进行方法调用和方法执行的数据结构，它是虚拟机运行时数据区中的虚拟机栈(VirtualMachine Stack)的栈元素。栈帧存储了方法的局部变量表，操作数栈，动态连接和方法返回地址等信息。每一个方法调用的过程，就对应着一个栈帧在虚拟机栈中入栈到出栈的过程。
 
 一个线程中的方法调用链可能很长，很多方法都同时处于执行状态，对于执行引擎来说，活动线程中，只有栈顶的栈帧是有效的，成为Curent Stack Frame。 这个栈帧所关联的方法称为当前方法(Current Method)。执行引擎所运行的所有字节码指令都只针对当前栈帧进行操作。
+
+![](/images/posts/javavm/stackframe.png)
 
 **局部变量表**
 

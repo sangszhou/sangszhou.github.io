@@ -406,6 +406,51 @@ public class LinkedQueue <E> {
   };
 ```
 
+### Synchronized and Lock
+[link](http://www.cnblogs.com/paddix/p/5367116.html)
+
+数据同步需要依赖锁，那锁的同步又依赖谁？synchronized给出的答案是在软件层面依赖JVM, 
+而Lock给出的方案是在硬件层面依赖特殊的CPU指令，大家可能会进一步追问：JVM底层又是如何实现synchronized的？
+
+```java
+package com.paddx.test.concurrent;
+
+public class SynchronizedDemo {
+    public void method() {
+        synchronized (this) {
+            System.out.println("Method 1 start");
+        }
+    }
+}
+```
+
+**Monitor Enter**
+
+Each object is associated with a monitor. A monitor is locked if and only if it has an owner. 
+The thread that executes monitorenter attempts to gain ownership of the monitor associated with 
+objectref, as follows:
+
+> If the entry count of the monitor associated with objectref is zero, the thread enters 
+> the monitor and sets its entry count to one. The thread is then the owner of the monitor.
+
+> If the thread already owns the monitor associated with objectref, it reenters the monitor, 
+> incrementing its entry count.
+
+> If another thread already owns the monitor associated with objectref, the thread blocks until 
+> the monitor's entry count is zero, then tries again to gain ownership.
+
+**Monitor Exit**
+
+> The thread that executes monitorexit must be the owner of the monitor associated with the instance referenced by objectref.
+
+> The thread decrements the entry count of the monitor associated with objectref. If as a result the value of the 
+> entry count is zero, the thread exits the monitor and is no longer its owner. Other threads that are blocking to 
+> enter the monitor are allowed to attempt to do so.
+  
+通过这两段描述，我们应该能很清楚的看出Synchronized的实现原理，Synchronized的语义底层是通过一个monitor的对象来完成，其实wait/notify等方法也依赖于monitor对象，这就是为什么只有在同步的块或者方法中才能调用wait/notify等方法，否则会抛出java.lang.IllegalMonitorStateException的异常的原因。
+
+
+
 ### 读写者问题 @todo
 
 读者可以并发读, 写着只能同时写一个
