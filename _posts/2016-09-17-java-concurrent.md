@@ -300,6 +300,8 @@ public class ConcurrentStack<E> {
 }
 ```
 
+注意, push 时, 要先设置 newHead.next = oldHead, 不然是错的
+
 **性能考虑**
 
 在轻度到中度的争用情况下，非阻塞算法的性能会超越阻塞算法，因为 CAS 的多数时间都在第一次尝试时就成功，
@@ -368,6 +370,8 @@ public class LinkedQueue <E> {
 }
 ```
 
+这个比较难写, 我首先想到的是更新节点 tail 而不是 tail.next
+
 涉及到两个指针, 分别是 tail 和 tail.next. 线程 T1 先更新 tail.next, 进入 C 下面的 block.
 
 考虑此时另一个线程 T2 进来了, residue 不为 null, 它会执行 B, 也就是和 D 一样的代码, 所以 D 不需要再判断
@@ -402,3 +406,8 @@ public class LinkedQueue <E> {
   };
 ```
 
+### 读写者问题 @todo
+
+读者可以并发读, 写着只能同时写一个
+
+### scala 实现读写者问题, 生产者消费者问题

@@ -39,9 +39,17 @@ implicit val timeout = ...
 List(Future("task1"), Future("task2"), Future("task3")
     .map(_.get)
     .foreach(println)
+    
+// or
+    
+val f1: List[Future[Int]] = List(() => 1, () => 2).map(fun => Future { fun() })
+
+val f2: Future[List[Int]] = Future.sequence(f1)
+  
+f2.map(_.foreach(println))
 ```
 
-分析上面两段代码, 首先 scala Future 里的是 string, 而 java arrays 放的是 Funtion, 这有所区别,
+分析上面两段代码, 首先 scala Future 里的是 string, 而 java arrays 放的是 Function, 这有所区别,
 但是 java arrays 放 function 的原因是 invokeAll 只接受 function, 对于 Future, 它也接受 function (代码块),
 但同时接受一个变量, 其内部实现是直接返回, 不用到 threadpool 里面再跑一遍了
 
@@ -57,3 +65,4 @@ future 类型为参数, 如果你要被别的函数使用, 就必须用 future �
 
 
 ## ForkJoinPool 的用法
+另一个 block 中有讲
