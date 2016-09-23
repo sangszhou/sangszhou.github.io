@@ -61,6 +61,8 @@ from Scores as s
 order by Score desc;
 ```
 
+这里要注意, count(distinct Score) 而不是 distinct count(*), 此外内部的 where 语句使用的是 <= 而不是 <
+
 ### Consecutive Numbers
 
 [question](https://leetcode.com/problems/consecutive-numbers/)
@@ -72,6 +74,8 @@ and l1.Num=l2.Num and l2.Num=l3.Num
 ```
 
 很奇特的一道题
+
+记得这个技巧, 自己内联
 
 ### Employees Earning More Than Their Managers
 
@@ -94,6 +98,16 @@ group by Email
 having count(Email) > 1;
 ```
 
+group by 子句还是我第二次想起来的, 第一次想起来的是 
+
+```sql
+select p1.Email
+from Person as p1, Person as p2
+where p1.Email = p2.Email and p1.Id != p2.Id
+```
+
+不知道第二个是否正确
+
 ### Customer who never order
 
 [question](https://leetcode.com/problems/customers-who-never-order/)
@@ -107,6 +121,8 @@ where Id not in (
 	where Customers.`Id` = Orders.`CustomerId`
 );
 ```
+里面的子句为什么还要再 join 一下
+
 
 ### Department Highest Salary
 
@@ -137,9 +153,20 @@ from
 	Employee E,
 	Department D 
 WHERE E.DepartmentId = D.id 
-  AND (DepartmentId,Salary) in 
+  AND (DepartmentId, Salary) in 
   (SELECT DepartmentId,max(Salary) as max FROM Employee GROUP BY DepartmentId)
 ```
+
+首先, 确认了 
+
+```sql
+SELECT DepartmentId, max(Salary) as max
+from Employee
+GROUP BY DepartmentId
+```
+
+是可行的, 不知道没有 Group by 的情况下是否可行
+
 
 ### Department Top Three Salaries
 [question](https://leetcode.com/problems/department-top-three-salaries/)
@@ -172,6 +199,19 @@ WHERE p1.Email = p2.Email AND
 p1.Id > p2.Id
 ```
 
+DELETE 后可以加参数的.. 
+
+```sql
+delete from Person
+where 1 <  (
+    select count(*)
+    from Person as p2
+    where Email = p2.Email
+)
+```
+
+不知道是不是正确
+
 ### Rising Temperature
 
 [question](https://leetcode.com/problems/rising-temperature/)
@@ -186,9 +226,64 @@ where to_days(a.Date) = to_days(b.Date) + 1 and a.Temperature > b.Temperature;
 
 > 有 ID 的表, 首先考虑能否用两张表完成工作, 因为他们之间可用 ID 比较
 
-> groupby 不能和 where 一起用, having 的作用很有限。但是 groupby 之后可以用 max 作为其他操作的参考
+> where 作用于全局, having 的作用与分组。
+> group by 之后可以用 max 作为其他操作的参考
+
+> 只有使用了group by语句，才能使用如：count()、sum()之类的聚合函数
+
+```sql
+SELECT region, SUM(population), SUM(area)
+FROM bbc
+GROUP BY region
+
+SELECT region, SUM(population), SUM(area)
+FROM bbc
+GROUP BY region
+HAVING SUM(area)>1000000
+```
+
+```sql
+要求查询性别为男生，并且列出每个学生的总成绩：
+
+select s.*, sum(s.score) 
+from student s 
+where sex='f' 
+group by s.name
+```
+
 
 ## SQL 语句的执行顺序
+
+1. WHERE 子句用来筛选 FROM 子句中指定的操作所产生的行。
+2. GROUP BY 子句用来分组 WHERE 子句的输出。
+3. HAVING 子句用来从分组的结果中筛选行。
+4. 在查询过程中聚合语句(sum,min,max,avg,count)要比having子句优先执行
+5. 而where子句在查询过程中执行优先级别优先于聚合语句(sum,min,max,avg,count)
+
+
+```sql
+简单说来：
+where子句：
+select sum(num) as rmb from order where id>10
+//只有先查询出id大于10的记录才能进行聚合语句
+```
+
+聚合函数，这是必需先讲的一种特殊的函数：
+例如SUM, COUNT, MAX, AVG等。这些函数和其它函数的根本区别就是它们一般作用在多条记录上。
+
+```sql
+SELECT SUM(population) FROM tablename
+```
+
+这里的SUM作用在所有返回记录的population字段上，结果就是该查询只返回一个结果，即所有
+国家的总人口数。 通过使用GROUP BY 子句，可以让SUM 和 COUNT 这些函数对属于一组的数据起作用。
+
+HAVING子句可以让我们筛选成组后的各组数据．
+
+HAVING子句在聚合后对组记录进行筛选
+
+而WHERE子句在聚合前先筛选记录．也就是说作用在GROUP BY 子句和HAVING子句前
+
 
 ## 和名次相关的 query
 

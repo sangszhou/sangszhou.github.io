@@ -218,21 +218,102 @@ do
 done
 ```
 
-## stip
+```shell
+#/bin/bash
+echo $0
+echo $*
+while getopts ":a:bc" opt
+do
+        case $opt in
+                a )
+                        echo $OPTARG                    
+                        echo $OPTIND;;
+                b )
+                        echo "b $OPTIND";;
+                c )
+                        echo "c $OPTIND";;
+                ? )
+                        echo "error"                    
+                        exit 1;;
+                esac
+done
+echo $OPTIND
+echo $*
+shift $(($OPTIND - 1))
+echo $*
+echo $0
 
-already decribed before
+
+运行sh getopt.sh  -a 12 -b -c 34 -m
+输出：
+getopt.sh
+-a 12 -b -c 34
+12
+3
+b 4
+c 5
+5
+-a 12 -b -c 34
+34
+getopt.sh
+```
+
+选项之间可以通过冒号:进行分隔，也可以直接相连接，：表示选项后面必须带有参数，如果没有可以不加实际值进行传递
+
+例如：getopts ahfvc: option表明选项a、h、f、v可以不加实际值进行传递，而选项c必须取值。使用选项取值时，必须使用变量OPTARG保存该值。
+
+注意这个脚本里的:afghc:  的冒号  前面的冒号表示屏蔽脚本的系统提示错误，转而使用自己提供的错误提示方式。后面的冒号表示c这个选项为必选项，并且需要指定具体的参数值，同时需要获取到参数值后将参数值存放到变量OPTARG中，供以后读取用。
+
+
+1. OPTARG存储相应选项的参数 OPTIND指向的是下一个参数的index
+2. shift 会改变参数的顺序，通过左移去掉某些参数
+3. getopts检测到非法参数就会停止，比如上例中遇到34就会终止
+4. unset OPTIND  可以解决shell脚本的函数中使用getopts
+
+使用 shift 而不是 getopts 这种可能更灵活吧
+
+```shell
+#!/bin/bash  
+usage()  
+{  
+  echo "usage:`basename $0` -[l|u] file [files]" >&2  
+  exit 1   
+}     
+if [ $# -eq 1 ]; then  
+    usage  
+fi  
+opt=""  
+while [ $# -ne 1 ]   
+do  
+   opt=$1;  
+   case $opt in   
+      -l|-L) echo "-l or -L options is specified"  
+             shift  
+             ;;  
+      -u|-U) echo "-u or -U options is specified"  
+              shift  
+             ;;  
+      *)  usage  
+             ;;  
+   esac  
+done  
+```
+
+## strip
+
+already described before
 
 ```
 # left strip
 % right strip
 
 $ x=xyz.2.3.4.fc15.i686
-$ y=${x#*fc}
-$ z=${y%.*}
+$ y=${x#*fc} // 15.i686
+$ z=${y%.*} // 15
 $ echo $z
 15
 
-[jaypal:~/Temp] awk -F. '{print substr ($5,3,2)}' <<< x=xyz.2.3.4.fc15.i686
+awk -F. '{print substr ($5,3,2)}' <<< x=xyz.2.3.4.fc15.i686
 15
 ```
 
