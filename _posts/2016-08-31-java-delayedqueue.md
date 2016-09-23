@@ -142,3 +142,30 @@ int drainTo(Collection<? super E> c)
 ```
 
 peekExpired 是无视 getDelay 的 peek, 不知道为什么不直接用 q.peek
+
+### BlockingQueue Implementations
+
+```
+ArrayBlockingQueue
+DelayQueue
+LinkedBlockingQueue
+PriorityBlockingQueue
+SynchronousQueue
+```
+
+```
+	    Throws Exception	Special Value	Blocks	Times Out
+Insert	add(o)	            offer(o)	    put(o)	offer(o, timeout, timeunit)
+Remove	remove(o)	        poll()	        take()	poll(timeout, timeunit)
+Examine	element()	        peek()	 	 
+
+Throws Exception: 
+If the attempted operation is not possible immediately, an exception is thrown.
+Special Value: 
+If the attempted operation is not possible immediately, a special value is returned (often true / false).
+Blocks: 
+If the attempted operation is not possible immedidately, the method call blocks until it is.
+Times Out: 
+If the attempted operation is not possible immedidately, the method call blocks until it is, but waits no longer than the given timeout. Returns a special value telling whether the operation succeeded or not (typically true / false).
+```
+

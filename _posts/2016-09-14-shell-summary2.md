@@ -7,7 +7,8 @@ keywords: linux, shell, script
 
 ## What is the use of a shebang line
 
-Shebang line at top of each script determines the location of the engine which is to be used in order to execute the script.
+Shebang line at top of each script determines the location of the engine which is to be used in 
+order to execute the script.
 
 ## What are the four fundamental components of every file system on linux
 
@@ -18,9 +19,9 @@ block size used by it,number of free data blocks and list of free inodes and dat
 
 **boot block** contains a small program called “Master Boot record”(MBR) which loads the kernel  during system boot up.
 
-**innode block** contains the **inode** for every file of the file system along with all the file attributes except its name.
+**inode block** contains the **inode** for every file of the file system along with all the file attributes except its name.
 
-## How will you print the login names of all users on a system?
+## How will you print the login names of all users on a system ?
 
 /etc/shadow file has all the users listed.
 
@@ -42,21 +43,63 @@ awk ‘END {print NR} fileName’
 
 ## 网络命令都有哪些
 
-telnet
+**telnet**
+Telnet is an application layer protocol used on the Internet or local area networks to provide a bidirectional 
+interactive text-oriented communication facility using a virtual terminal connection
 
-nc -l port; nc -z host port; nc -c
+```
+nc -l port
+nc -z host port
+nc -c
+```
 
-nslookup
+**nslookup**
 
-netstat 
+query Internet name servers interactively
+
+```bash
+➜  ~ nslookup google.com
+Server:		64.104.123.144
+Address:	64.104.123.144#53
+
+Non-authoritative answer:
+Name:	google.com
+Address: 74.125.200.113
+Name:	google.com
+```
+
+
+**netstat **
+
+show network status
+
+``` bash
+netstat -nalt | grep tcp
+
+Active kernel control sockets
+Proto Recv-Q Send-Q   unit     id name
+```
+
+Q 应该是 queue 的意思, 表示待处理消息
 
 ## How will you copy file from one machine to other
 
 We can use utilities like “ftp” ,”scp” or “rsync” to copy file from one machine to other.
 
+**scp**-- secure copy (remote file copy program)
+
+
+
+```bash
+rsync -t *.c foo:src/
+
+rsync -avz foo:src/bar /data/tmp # a means archive, 
+```
+
 ## What are zombie processes
 
-These are the processes which have died but whose exit status is still not picked by the parent process. These processes even if not functional still have its process id entry in the process table.
+These are the processes which have died but whose exit status is still not picked by the parent process. 
+These processes even if not functional still have its process id entry in the process table.
 
 Linux 中的僵尸进程
 
@@ -72,7 +115,8 @@ mkdir -p
 ```
 
 ## 从“标准输入”读入n次字符串，每次输入的字符串保存在数组 array 里
-```
+
+```bash
    i=0
    n=5
    while [ "$i" -lt $n ] ; do
@@ -86,15 +130,16 @@ mkdir -p
 
 ## 将字符串里的字母逐个放入数组，并输出到“标准输出”
 
-```
+```bash
 chars='abcdefghijklmnopqrstuvwxyz'
+
 for (( i=0; i<26; i++ )) ; do
     array[$i]=${chars:$i:1}
     echo ${array[$i]}
 done
 ```
 
-这里有趣的地方是 ${chars:$i:1}，表示从chars字符串的 $i 位置开始，获取 1 个字符。如果将 1 改为 3 ，就获取 3 个字符啦～ 结果是：
+这里有趣的地方是 ${chars:$i:1}，表示从chars字符串的 $i 位置开始，获取 1 个字符。如果将 1 改为 3 ，就获取 3 个字符
 
 ## AWK
 
@@ -106,11 +151,13 @@ HOST_IP=$(ifconfig  | grep 'inet addr' | grep -v 127.0.0.1 | awk '{print $2}' | 
 
 如果只是显示/etc/passwd的账户
 
-```
+```bash
 cat /etc/passwd | awk  -F ':'  '{print $1}'  
 
 cat /etc/passwd |awk  -F ':'  'BEGIN {print "name,shell"}  {print $1","$7} END {print "blue,/bin/nosh"}'
 ```
+
+awk 也就是三步而已, 开始 BEGIN, 然后是中间的操作, 然后是 END, 如果开始符号没有的话, 就直接 {}, 就像第一行代码展示的一样
 
 ```
 awk 'END {print NR}' filename.txt 效果等同于 wc -l filename.txt
@@ -119,12 +166,13 @@ awk 'END {print NR}' filename.txt 效果等同于 wc -l filename.txt
 ## 父子 shell 传递变量
 
 ```
-export JAVA_OPTS="-XX:MaxPermSize=1024m -Xmx24g" sbt -Dconfig.file=config/unitest.conf -XX:MaxPermSize=2048m -Xmx24g -Djdk.logging.allowStackWalkSearch=true clean assembly
+export JAVA_OPTS="-XX:MaxPermSize=1024m -Xmx24g" sbt -Dconfig.file=config/unitest.conf 
+    -XX:MaxPermSize=2048m -Xmx24g -Djdk.logging.allowStackWalkSearch=true clean assembly
 ```
 
 ## 打印到文件同时显示到界面上
 
-```
+```bash
 ls | tee file
 
 ls | tee file1 file2 file3
@@ -132,7 +180,7 @@ ls | tee file1 file2 file3
 
 ## netstat 测试
 
-```
+```bash
 meterapi.sh
 
 while [ true ]; do
@@ -142,7 +190,8 @@ while [ true ]; do
         HANG_BY_ICCS=$(netstat -alnp 2>/dev/null | grep 16790 | awk '$2 != 0' | wc -l)
         HANG_BY_ICAMAPI=$(netstat -alnp 2>/dev/null | grep 16790 | awk '$3 != 0' | wc -l)
 
-        echo "total clients: $TOTAL_CLIENT, $HANG_CLIENT hang, $HANG_BY_ICAMAPI to iccs hang due to icamapi, $HANG_BY_ICCS to iccs hang due to iccs"
+        echo "total clients: $TOTAL_CLIENT, $HANG_CLIENT hang, $HANG_BY_ICAMAPI to iccs hang due to icamapi, 
+            $HANG_BY_ICCS to iccs hang due to iccs"
         sleep 5
 done
 ```
@@ -163,7 +212,7 @@ curl -X POST --data @json_out.txt http://localhost:8080/
 
 IFS stands for "internal field separator". It is used by the shell to determine how to do word splitting, i. e. how to recognize word boundaries.
 
-```
+```bash
 IFS=": "
 
 mystring="foo:bar baz rab"
@@ -265,7 +314,7 @@ getopt.sh
 注意这个脚本里的:afghc:  的冒号  前面的冒号表示屏蔽脚本的系统提示错误，转而使用自己提供的错误提示方式。后面的冒号表示c这个选项为必选项，并且需要指定具体的参数值，同时需要获取到参数值后将参数值存放到变量OPTARG中，供以后读取用。
 
 
-1. OPTARG存储相应选项的参数 OPTIND指向的是下一个参数的index
+1. OPTARG 存储相应选项的参数 OPTIND指向的是下一个参数的index
 2. shift 会改变参数的顺序，通过左移去掉某些参数
 3. getopts检测到非法参数就会停止，比如上例中遇到34就会终止
 4. unset OPTIND  可以解决shell脚本的函数中使用getopts
@@ -326,6 +375,7 @@ do   
         echo $LINE 
 done
 ```
+
 读完后记得把 IFS 重置
 
 ```
@@ -337,7 +387,17 @@ do
 done
 ```
 
+
 IFS 会影响 for loop, 不要轻易用 IFS 
+
+上面的读法有问题, 有时候最后一行会读不到
+
+```bash
+while read line || [[ -n $line ]]
+do
+    do something
+done < file.txt
+```
 
 
 ## seq
