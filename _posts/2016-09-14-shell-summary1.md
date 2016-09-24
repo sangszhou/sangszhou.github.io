@@ -9,7 +9,7 @@ keywords: linux, shell, script
 
 ### 通过环境变量传递
 
-```
+```shell
 maxPermSize="1024m"
 heapSize="24g"
 
@@ -17,12 +17,13 @@ if [[ $PROJECT_PERMSIZE != "" ]];then
     maxPermSize=$PROJECT_PERMSIZE
 fi
 
-nohup java  $JAVA_OPTS  -Djdk.logging.allowStackWalkSearch=true -Dconfig.file=$config -cp $assembly com.Boot 1>/dev/null 2>$home/logs/err_out.log &
+nohup java  $JAVA_OPTS  -Djdk.logging.allowStackWalkSearch=true -Dconfig.file=$config 
+    -cp $assembly com.Boot 1>/dev/null 2>$home/logs/err_out.log &
 ```
 
 ### 直接参数传递
 
-```
+```shell
 some_program word1 word2 word3
 
 $0 would contain "some_program"
@@ -34,7 +35,6 @@ $3 would contain "word3"
 ## 相对路径
 
 ```bash
-
 root
 	configs
 		apache.conf
@@ -61,7 +61,7 @@ elif [[ -z $running_status ]]
 
 ## default value
 
-`${parameter:-word}`
+`parameter=${parameter:-word}`
 
 If parameter is unset or null, the expansion of word is substituted. 
 
@@ -74,6 +74,10 @@ Otherwise, the value of parameter is substituted.
 ## basic
 
 ### nohup
+
+nohup is a POSIX command to ignore the HUP (hangup) signal. The HUP signal is, by convention, the way a terminal warns dependent processes of logout.
+
+Output that would normally go to the terminal goes to a file called `nohup.out` if it has not already been redirected.
 
 在 terminal 或者脚本启动一个进程后，新进程在 terminal 关闭后会被 kill 掉。如果想把程序真正放到后台执行，那么久用 nohup 启动进程
 
@@ -120,16 +124,21 @@ contains() {
 ### $ and more
 
 $? Exit status of last command
+
 $$ Process ID of shell
+
 $_ Name of last command.
 
 $# number of function arguments
+
 $@ 表示所有的参数，包括 command 本身，所以实际的参数应该是
+
+$*
 
 ### find
 
 ```bash
-find /etc -name *.jar
+find /etc -name *.jar ## 加上引号更好
 
 find /home -user someone
 
@@ -208,6 +217,29 @@ copy_files() {
 }
 ```
 
+cp -f 应该是递归创建文件目录的意思吧
+
+### chmod
+
+```bash
+
+ls -l
+
+drwxrw-xr-x staff cache
+
+chmod u+x fileName
+```
+
+r -> read, w -> write, x -> execute
+
+u 表示 user permission bit, x 表示可执行权限, 所以 u+x 表示给 user 添加可执行权限
+
+644 make a file readable by anyone and writable by the owner only
+
+chmod ug=rx fileName 表示给 user 和 group 添加 read, execute 权限
+
+chmod u-x 去掉 owner 的执行权限
+
 ### remote login
 
 ```bash
@@ -216,7 +248,7 @@ copy_files() {
 for host in bgl-fb{01,02,03,04,05,06,07,08,09,10}
 do
     ssh -q vdeadmin@$host '  //这个单引号和 host 之间有空格
-        echo "$hostname"
+        echo "$hostname" // 会发生替换
         echo `java -version`
     '
 done
@@ -266,14 +298,14 @@ echo “Running script at `date`"
 
 这个解法会 OOM
 
-```
-declare -a data
+```bash
+declare -a data // 关联数组
 columnNum=0
 while read line || [[ -n $line ]]
 do
-    words=( $line )
+    words=( $line ) // 编程数组
 
-    columnNum=$(( ${#words[@]} - 1 ))
+    columnNum=$(( ${#words[@]} - 1 )) // 很重要
 
     for index in `seq 0 $columnNum`
     do
@@ -287,3 +319,156 @@ do
     echo ${data[$index]}
 done
 ```
+
+### Tenth line
+
+```bash
+# Solution One:
+# head -n 10 file.txt | tail -n +10
+
+# Solution Two:
+# awk 'NR==10' file.txt
+
+# Solution Three:
+sed -n 10p file.txt
+
+# In awk, the predefined variable NR stores the current line number
+# This allows for an easy throwaway 1 liner solution
+cat file.txt | awk '{if (NR==10) print $0}'
+```
+
+### Word Frequency
+
+```
+the day is sunny the the
+the sunny is is
+
+the 4
+is 3
+sunny 2
+day 1
+```
+
+```bash
+# Solution1:
+awk '{for(i=1;i<=NF;i++) a[$i]++} END {for(k in a) print k,a[k]}' words.txt | sort -k2 -nr
+
+#Solution2:
+
+declare -A freq # 关联数组
+
+fields=($(cat $input | awk -F: '{$1=$1} 1'))
+
+while read field; do
+	freq[$field]=$((freq[$field] + 1))
+done <<<"$(printf "%s\n" "${fields[@]}")"
+
+for word in "${!freq[@]}"; do
+	echo "$word - ${freq["$word"]}";
+done | sort -rn -k3
+```
+
+### 编写个shell脚本将当前目录下大于10K的文件转移到/tmp目录下
+
+```shell
+#/bin/sh
+ 
+#Programm :
+# Using for move currently directory to /tmp
+for FileName in `ls -l | awk '$5>10240 {print $9}'`
+    do
+        mv $FileName /tmp
+    done
+ls -al /tmp
+echo "Done! "
+```
+
+### 编写shell脚本获取本机的网络地址
+
+```bash
+#!/bin/bash
+#This programm will printf ip/network
+
+IP=`ifconfig eth0 |grep 'inet ' |sed 's/^.*addr://g'|sed 's/ Bcast.*$//g'`
+NETMASK=`ifconfig eth0 |grep 'inet '|sed 's/^.*Mask://g'`
+echo "$IP/$NETMASK"
+exit
+```
+
+### 将一目录下所有的文件的扩展名改为bak
+
+```shell
+for i in *.*;
+    do 
+        mv $i ${i%%.*}.bak;
+    done
+```
+
+### 打印root可以使用可执行文件数  ???
+
+```shell
+echo "root's bins: $(find ./ -type f | xargs ls -l | sed '/-..x/p' | wc -l)"
+root's bins: 3664
+```
+
+### addProperty
+
+```bash
+#!/bin/bash
+add_property() {
+    file=$1
+    key=$2
+    value=$3
+    if [[ ! -e $file ]];then
+        echo "file $file not exists"
+        return -- -1
+    fi
+    if grep -Fq "$key=" "$file"
+    then
+        replace="sed -i 's#^${key}=.*#${key}=\"${value}\"#g' \"$file\""
+        eval $replace
+    else
+        echo "$key=\"$value\"">>"$file"
+    fi
+}
+```
+
+```scala
+#!/user/bin/env bash
+
+cd `dirname $0` /..
+
+SCRIPT_NAME=`basename $0`
+PID=run/icam-api.pid
+
+status() {
+    if [[ -f $PID ]]; then
+        echo "PID file exists, pid = `cat $PID`"
+        if ps -p `cat $PID` &> /dev/null; then
+            return 0
+        else
+            echo "process for $PID is not exist"
+            return 1
+        fi
+     else
+        echo "PID file not exist"
+        return 1
+     fi
+     
+     return 0
+}
+
+SCRIPT_NAME=`base $0`
+
+if [[ $SCRIPTS_NAME == 'status.sh' ]]; then
+    if status; then
+        echo "process is running"
+        exit 0
+    else
+        echo "process is not running"
+    fi
+fi
+```
+
+
+
