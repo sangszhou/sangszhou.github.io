@@ -36,6 +36,9 @@ trait AsyncObjectPool[T] {
 }
 ```
 
+use 函数可以看成是 loan pattern, 输入是一个函数, f: T => Future[A], 在函数内部使用对象池的资源,
+最后再回收资源
+
 AsyncObjectPool 不是线程安全的, 这是它线程安全的子类
 
 ```scala
@@ -47,6 +50,7 @@ class ThreadSafeObjectPool[T](factory: ObjectFactory[T]) extends AsyncObjectPool
     // available connections
     private val poolable = new Stack[T]()
 
+    // get object from object pool
     private def checkout(promise: Promise[T]) = {
         this.mainPool.action {
           if (this.isFull) this.enqueuePromise(promise)
@@ -121,8 +125,7 @@ trait EventConnectionDelegate
 也就是说, 每次 http connection 只能处理一个请求, 当请求返回时, 直接送给挂在自己身上的 client, 当然这是通过 Promise 传递的
 
 ```scala
-class HttpConnection(
-                      configuration: Configuration,
+class HttpConnection(configuration: Configuration,
                       group: EventLoopGroup = NettyUtils.DefaultEventLoopGroup,
                       implicit val executionContext: ExecutionContext = ExecutorServiceUtils.CachedExecutionContext)
 
