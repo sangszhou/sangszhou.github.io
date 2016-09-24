@@ -58,6 +58,19 @@ class MyList[+T] {
 ```
 这段代码不能让 B 是 T 的子类型, 原因忘记了(好像和 function 有关系) @todo
 
+B 的类型是 T 的父类, 原因还是里氏替换原则, 里氏替换是说父类可以存在的地方, 都可以替换成子类
+
+假如, MyList[Animal] addMore 参数是 Animal 的子类, 那么 
+
+```scala
+MyList[Animal].addMore(dog) -> MyList[Animal] // Ok
+
+MyList[Cat].add(dog) -> MyList[Cat] // 替换为子类 MyList[Cat], 就不妥了
+```
+
+addMore 可以看成是 `Function[B, Container[]]` B 必须是 -B 的才可以
+
+
 其次是 **逆变**
 
 ```scala
@@ -141,6 +154,8 @@ class In[-A] { def fun(x: A) {} }
 class In[+A]{ def fun(): A = null.asInstanceOf[A] }
 则与 Function0[+A] 等价。
 ```
+
+协变和逆变对函数签名的影响就是他们的函数参数都是 -R 的, 返回值都是 +R 的
 
 ## 边界
 
