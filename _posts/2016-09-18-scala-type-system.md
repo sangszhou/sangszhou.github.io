@@ -462,3 +462,60 @@ breakout 返回的 Builder 很可能就是上面这个 MapBuilder, 这样就有�
 [what's break out](http://docs.scala-lang.org/tutorials/FAQ/breakout)
 
 
+### 线性化 Linearization Order
+
+```scala
+class A {
+  def foo() = "A"
+}
+
+trait B extends A {
+  override def foo() = "B" + super.foo()
+}
+
+trait C extends B {
+  override def foo() = "C" + super.foo()
+}
+
+trait D extends A {
+  override def foo() = "D" + super.foo()
+}
+
+object LinearizationPlayground {
+    def main(args: Array[String]) {
+
+      var d = new A with D with C with B;
+      println(d.foo) // CBDA????
+  }    
+}
+```
+
+![link](http://stackoverflow.com/questions/34242536/linearization-order-in-scala)
+
+An intuitive way to reason about linearization is to refer to the construction order and to visualise the linear hierarchy.
+
+You could think this way: the base class is constructed first; traits are constructed left-to-right because a trait on 
+the right is added "later" and thus "overrides" the previous traits. However, to construct a trait, its base traits 
+must be constructed first (obvious); and, of course, if a trait is constructed, is not reconstructed again. Now, 
+the construction order is the reverse of the linearisation. Think of "base" traits/classes as higher in the linear 
+hierarchy, and traits lower in the hierarchy as closer to the class/object which is the subject of the linearisation. 
+The linearisation affects how `super´ is resolved in a trait: it will resolve to the closest base trait (but higher in 
+the hierarchy!).
+
+Linearisation of A with D with C with B is
+
+```
+(top of hierarchy) A (constructed first as base class)
+linearisation of D
+    A (not considered as A occurs before) // 因为 A 已经出现过了, 所以不再考虑
+    D (D extends A)
+linearisation of C
+    A (not considered as A occurs before) 
+    B (B extends A)
+    C (C extends B)
+linearisation of B
+    A (not considered as A occurs before)
+    B (not considered as B occurs before)
+```
+
+

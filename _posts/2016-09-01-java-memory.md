@@ -30,7 +30,7 @@ keywords: java, io
 > 2. 方法区
    存储已经被虚拟机加载的类信息, 常量, 静态变量, JIT 编译后的代码
 > 3. 运行时常量池
-   方法区的一部分, 用于存放编译期产生的各种字节面量和符号引用 (what's 符号引用)
+   方法区的一部分, 用于存放编译期产生的各种字节面量和符号引用 (类和接口的全限定名, 字段的名称和描述符, 方法的名称和描述符)
 > 4. 直接内存
    NIO, Native 函数直接分配堆外内存。DirectBuffer 也会引用此部分内存
 
@@ -43,6 +43,21 @@ keywords: java, io
 通过直接指针访问就简单些, reference 指向的位置就是对象实例数据的开始位置, 对象实例数据
 中包含指向方法区的指针
 
+**描述符与特征签名的区别**
+
+Java方法的特征签名只包括了方法的**名称**、**参数顺序**以及**参数类型**，Java语言规范中的定义参考如下： 
+
+A method descriptor represents the parameters that the method takes and the value that it returns: 
+
+在Java语言层面，描述符与特征签名不同；在Java虚拟机规范中，描述符与特征签名是相同的。 
+
+
+```java
+
+(Ljava/util/List<Ljava/lang/Integer;>;)Ljava/lang/String
+```
+
+
 ## 内存溢出
 
 内存溢出分为虚拟机栈和本地方法栈溢出, java 堆溢出, 运行时常量区溢出和方法区溢出四种
@@ -53,14 +68,111 @@ keywords: java, io
 `OutOfMemoryError` 虚拟机在扩展栈时无法申请到更多的内存, 一般可以通过不停的创建线程
 一起这种问题
 
+
+
+```java
+-Xss128k
+// 堆栈溢出, Stackoverflow
+public class JavaVMStackSOF {
+    private int stackLength = 1
+    
+    public void stackLeak
+        stackLength ++
+        stackLeak
+    
+    public static void main(String args[]) throws Throwable
+        JavaVMStackSOF oom = new JavaVMStackSOF
+        try
+            oom.stackLeak
+        catch Throwable
+            println("")
+            throw e
+}           
+```
+
+```java
+// OOM unable to create new native thread
+
+public class JavaVMStackOOM
+    private void dontStop
+        while(true)
+    
+    public void stackLeakByThread
+        while(true)
+            Thread thread = new Thread(new Runnable()
+                public void run
+                    dont stop
+            thread.start()
+
+    public static void main(String []args) throwable
+        JavaVMStackOOM oom = new JavaVMStack
+        oom.stackLeakByThread
+```
+
 ### java 堆溢出
 创建大量的对象并且生命周期都很长的情况下会 OOM
 
+```java
+-Xms20m -Xmx100m -XX:HeapDumpOnOutOfMemory
+public static void main(String args[])
+    List<OOMObject> list = new ArrayList<OOMObject>
+    
+    while(true)
+        list.add(new OOMObject())    
+```
+
 ### 运行时常量区溢出
+
 OOM PermGen space. 典型的例子就是 String.intern 方法
+
+
+```java
+-XX:PermSize=10M -XX:MaxPermSize=10M
+
+public class RuntimeConstantOOM
+    public static void main(String args[])
+        // 使用 list 保存常量池, 避免 full gc 回收常量池
+        List<String> list = new ArrayList<String>
+        
+        // 10M 的 permsize 在 integer 范围内足够产生 OOM 了
+        int i = 0
+        while(true)
+            list.add(String.valueOf(i++).intern())
+```
 
 ### 方法区溢出
 方法区存放 class 等元信息, 如果产生大量的类(使用 cglib) 就会引起溢出
+
+```java
+-XX:PermSize=10M -XX:MaxPermSize=10M
+
+public class JavaMethodOOM
+    while(true)
+        Enhancer enhancer = new Enhancer
+        enhaner.setSuperclass(OOMObject.class)
+        enhaner.setCache(false)
+        enhancer.setCallBack(new MethodInterceptor {
+            pubic Object intercept(Object obj, Method method, Object[] args, MethodProxy proxy) {
+                return proxy.invokeSuper(obj, args)
+            }
+        }
+```
+
+### 本机直接内存泄露
+
+```java
+public class DirectMemoryOOM
+    private static final int _1MB = 1024 * 1024
+    
+    Field field = Unsafe.class.getDeclaredFields()[0]; // 获得构造函数
+    field.setAccessible(true)
+    Unsafe unsafe = (unsafe) field.get(null);
+    
+    while(true)
+        unsafe.allocateMemory(10M)
+```
+
+
 
 ## 垃圾收集
 

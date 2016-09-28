@@ -96,13 +96,14 @@ rsync -t *.c foo:src/
 rsync -avz foo:src/bar /data/tmp # a means archive, 
 ```
 
-## What are zombie processes
+## What are zombie processes  @todo
 
 These are the processes which have died but whose exit status is still not picked by the parent process. 
 These processes even if not functional still have its process id entry in the process table.
 
 Linux 中的僵尸进程
 
+@todel
 ## What is the difference between $$ and $!?
    
 $$ gives the process id of the currently executing process whereas $! shows the
