@@ -1,3 +1,10 @@
+---
+layout: post
+title: effective java
+categories: [java]
+keywords: java
+---
+
 ### 构建器
 
 builder模式只在有很多参数的时候才能使用，在设计阶段如果能够预想到将来多参数的情况，那么最好在最开始使用这种模式

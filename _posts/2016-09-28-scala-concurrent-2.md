@@ -1,3 +1,9 @@
+---
+layout: post
+title: scala concurrent2
+categories: [scala]
+keywords: scala, concurrent
+---
 
 不用锁的例子
 
@@ -131,3 +137,19 @@ class TransferMain extends Actor {
     })
   }}}
 ```
+
+### lambda expression
+
+Lambda Expressions enable you to encapsulate a single unit of behavior and pass it to other code. 
+You can use a lambda expressions if you want a certain action performed on each element of a collection, 
+when a process is completed, or when a process encounters an error. Lambda expressions are supported by the following features:
+
+* **Method References** are compact, easy-to-read lambda expressions for methods that already have a name.
+* **Default Methods** enable you to add new functionality to the interfaces of your libraries and ensure binary compatibility 
+  with code written for older versions of those interfaces. They are interface methods that have an implementation and 
+  the default keyword at the beginning of the method signature. In addition, you can define static methods in interfaces.
+* **New and Enhanced APIs** That Take Advantage of Lambda Expressions and Streams in Java SE 8 describe new and enhanced classes that take advantage of lambda expressions and streams.
+  
+
+
+

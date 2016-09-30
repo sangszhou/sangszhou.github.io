@@ -7,9 +7,9 @@ keywords: agent, java
 
 ## Overview
 
-JVM instrumentation feature was introduced in JDK 1.5 and is based on byte code instrumentation (BCI). Actually, when a class is loaded, 
-you can alter the corresponding byte code to introduce features such as methods execution profiling or event tracing. 
-Most of Java Application Performance Management (APM) solutions use this mechanism to monitor JVM.
+**JVM instrumentation feature** was introduced in JDK 1.5 and is based on byte code instrumentation (BCI). Actually, when a class is loaded, 
+you can alter the corresponding byte code to introduce features such as **methods execution profiling** or **event tracing**. 
+Most of Java **Application Performance Management** (APM) solutions use this mechanism to monitor JVM.
 
 ![](/images/posts/java/java-agent-overview-min.png)
 
@@ -204,7 +204,7 @@ You can see that there is a new trace: Method Executed in ms: 820 proving that i
 
 It is easy to profile your code with the instrumentation API and the Javassist API: write transformers with Javassist, write an agent to register them, then use the -javaagent option and you're done !
 
-## Grey 的用法
+## BTrace 的用法
 
 使用代码的方式, attach agent
 
@@ -268,7 +268,7 @@ private static synchronized void main(final String args, final Instrumentation i
 
 ### Client
 
-首先是client.compile方法，使用的是Java compile api，将我们传递的java源文件编译为.class文件，当然你如果使用btracec提前编译了源代码，那么这里就不会有这一步。
+首先是client.compile方法，使用的是Java compile api，将我们传递的java源文件编译为.class文件，当然你如果使用 btrace 提前编译了源代码，那么这里就不会有这一步
 
 ```java
 import com.sun.btrace.annotations.*;
