@@ -365,3 +365,57 @@ Think about a game character. In games, speed is top priority, so representing y
 
 Moreover, our perception of the real world is inevitably based on mutable objects. When you fill up your car with fuel at the gas station, you perceive it as the same object all along (i.e. its identity is maintained while its state is changing) - not as if the old car with an empty tank got replaced with consecutive new car instances having their tank gradually more and more full. So whenever we are modeling some real-world domain in a program, it is usually more straightforward and easier to implement the domain model using mutable objects to represent real-world entities.
 
+## 函数作为一等公民体现在哪里
+
+1. 可传递, 赋值
+2. 高阶
+3. 嵌套函数和匿名函数
+4. 闭包
+5. 偏应用 (partial function)
+
+Functor 是定义了 map 的容器类型
+
+by name 只能出现在函数参数中, => R 类型只能出现在函数参数中, 表示 by name parameter 
+
+```scala
+def foo(f: () => String)
+    println("111")
+    println(f() + "OK")
+
+foo( { println("AAA"; () => "AAA")
+```
+
+f 是函数, 而给的参数是表达式, 所以应该是值吧
+
+结果是 AAA 111 AAAOK
+
+```scala
+def bar(f: => String)
+    println("111")
+    println(f + "OK")
+
+bar({println("AAA"); "AAA"})
+```
+
+传名吧, 结果是 111 AAA, AAAOK
+
+### mis
+
+def foo() = xxx 在调用时可以省略 f 后面的 ()
+
+但定义时如果不加小括号, def foo = xxx 则调用时加 () 要注意, foo() 被翻译成 foo.apply()
+
+### 闭包 2
+
+代码块 + 上下文, The binding of referencing environment
+
+```scala
+def a(i: Int, f: => Unit): Unit = {
+    def b() { println(i) }
+    if(i > 1) f else a(2, b)
+}
+
+a(1, {}) // 1
+```
+
+看来是早绑定
