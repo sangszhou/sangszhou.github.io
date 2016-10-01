@@ -477,3 +477,13 @@ object ComponentRegistry extends UserServiceComponent with UserRepositoryCompone
 
 这还有一个好处就是所有的对象都是 val 类型的。
 
+### List fold left 的使用
+
+```scala
+val result: (List[Int], List[Int]) = List(-1, 2, 3).foldLeft((List[Int](), List[Int]()))((b, a) => {
+  if(a >= 0) (a :: b._1, b._2)
+  else (b._1, a :: b._2)
+})
+
+println(result)
+```

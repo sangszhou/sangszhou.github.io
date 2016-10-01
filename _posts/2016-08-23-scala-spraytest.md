@@ -9,7 +9,7 @@ keywords: scala, concurrent
 观察对象，一段 spray 代码：
 
 ```scala
-Post("ur", HttpEntity(ContentTypes.`application/json`, jsonData)) .withHeaders(userHeader) ~> routes ~> check {
+Post("url", HttpEntity(ContentTypes.`application/json`, jsonData)) .withHeaders(userHeader) ~> routes ~> check {
     assert(responseAs[String] == "hello")
 	assert (status == ok)
 }
@@ -28,7 +28,7 @@ Post ~> routes ~> check {
 从结构上来看，这段代码分为四部分，分别是 Post, routes, check 和 block 内部的判断逻辑。但实际上，代码的关键部分只有两段，两个 ~> 方法。读这段代码需要 IDE 帮忙（intellij idea）, 借助 IDE 快速找到 scala implicit 函数定义。
 
 
-###第一部分，Post 调用方法 ~>
+### 第一部分，Post 调用方法 ~>
 
 Post() 实际上是调用 Post.apply()，转化成 new RequestBuilder(POST)，而 RequestBuilder 本身没有 ~> 方法，所以必然存在隐式转换，根据 IDE 的提示，找到隐式转换的定义
 

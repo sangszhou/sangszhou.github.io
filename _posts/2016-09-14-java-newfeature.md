@@ -98,6 +98,46 @@ private interface DefaultableFactory {
 }
 ```
 
+**原理**
+
+Lambda表达式利用了类型推断（type inference）技术
+
+内部类来实现Lambda表达式
+
+```java
+@FunctionalInterface
+interface Print<T> {
+  public void print(T x);
+}
+
+public class Lambda {   
+  public static void PrintString(String s, Print<String> print) {
+    print.print(s);
+  }
+
+  private static void lambda$0(String x) {
+    System.out.println(x);
+  }
+  
+  final class $Lambda$1 implements Print{
+    @Override
+    public void print(Object x) {
+      lambda$0((String)x);
+    }
+  }
+  
+  public static void main(String[] args) {
+    PrintString("test", new Lambda().new $Lambda$1());
+  }
+  
+  // 原始的用法
+  public static void main(String[] args) {
+    PrintString("test", (x) -> System.out.println(x));
+  }
+
+}
+```
+
 ## Method reference
 
 The first type of method references is constructor reference with the syntax Class::new or alternatively, 
@@ -238,3 +278,13 @@ System.out.println( timeFromClock );
 
 The PermGen space is gone and has been replaced with Metaspace (JEP 122). The 
 JVM options -XX:PermSize and –XX:MaxPermSize have been replaced by -XX:MetaSpaceSize and -XX:MaxMetaspaceSize respectively.
+
+[link](https://www.infoq.com/articles/Java-PERMGEN-Removed)
+
+The move to Metaspace was necessary since the PermGen was really hard to tune. There was a possibility that the metadata could move with every full garbage collection. Also, it was difficult to size the PermGen since the size depended on a lot of factors such as the total number of classes, the size of the constant pools, size of methods, etc.
+
+Additionally, each garbage collector in HotSpot needed specialized code for dealing with metadata in the PermGen. 
+Detaching metadata from PermGen not only allows the seamless management of Metaspace, but also allows for 
+improvements such as simplification of full garbage collections and future concurrent de-allocation of class metadata.
+
+

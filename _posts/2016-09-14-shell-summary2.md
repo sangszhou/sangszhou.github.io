@@ -98,13 +98,14 @@ rsync -t *.c foo:src/
 rsync -avz foo:src/bar /data/tmp # a means archive, 
 ```
 
-## What are zombie processes
+## What are zombie processes  @todo
 
 These are the processes which have died but whose exit status is still not picked by the parent process. 
 These processes even if not functional still have its process id entry in the process table.
 
 Linux 中的僵尸进程
 
+@todel
 ## What is the difference between $$ and $!?
    
 $$ gives the process id of the currently executing process whereas $! shows the
@@ -441,6 +442,42 @@ for i in `seq 2 $max`
 do
     echo "$i"
 done
+```
+
+### 要求分析apache访问日志，找出访问页面数量在前100位的IP数。日志大小在78M左右。以下是apache的访问日志节选
+         
+```
+202.101.129.218 - - [26/Mar/2006:23:59:55 +0800] "GET /online/stat_inst.php?pid=d065 HTTP/1.1" 302 20-"-" "-" "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
+```
+    
+```bash
+    # awk '{print $1}' log      |sort |uniq -c|sort -r |head -n10
+          5 221.224.78.15
+          3 221.233.19.137
+          1 58.63.148.135
+          1 222.90.66.142
+          1 222.218.90.239
+          1 222.182.95.155
+          1 221.7.249.206
+          1 221.237.232.191
+          1 221.235.61.109
+          1 219.129.183.122
+```
+
+### 求2个数之和
+    
+```
+#/bin/bash
+typeset first second
+read -p "Input the first number:" first
+read -p "Input the second number:" second
+result=$[$first+$second]
+echo "result is : $result"
+exit 0
+```
+
+```bash
+${{ 1 + 2 }}
 ```
 
 

@@ -170,7 +170,7 @@ sed -n ’10p’ file.txt 打印出第十行，打印不出就报错
 
 -n 是 quite 模式，如果不加此参数，sed 会把原始文件打印到标准输出流上
 
-‘10p’ 是打印出第 十行，假如没有第十行返回空，这里
+‘10p’ 是打印出第十行，假如没有第十行返回空，这里
 
 sed -n ‘1,5p’ file.txt 打印出第 1 到第 10 行
 
@@ -186,11 +186,321 @@ sed -n ‘1,5p’ file.txt 打印出第 1 到第 10 行
 
 下文提到的，还没用过的知识有：
 
-sed -n ‘1,5p’ fileName.md
+```bash
 
-sed -n ‘1,4d’ fileName.md 删除行
+sed -n ‘1,5p’ fileName.md 只查看第
+
+sed -n ‘1,4d’ fileName.md 删除第 1 到第 4 行
+
+sed '/My/,/You/d' datafile
+#删除包含"My"的行到包含"You"的行之间的行
+sed '/My/,10d' datafile
+#删除包含"My"的行到第十行的内容
+
+
+sed '/my/p' datafile
+#默认情况下，sed把所有输入行都打印在标准输出上。如果某行匹配模式my，p命令将把该行另外打印一遍。
+
+sed -n '/my/p' datafile
+#选项-n取消sed默认的打印，p命令把匹配模式my的行打印一遍。
+
+sed '$d' datafile
+#删除最后一行，其余的都被显示
+
+sed '/my/d' datafile
+#删除包含my的行，其余的都被显示
+
+s 命令表示替换
+sed 's/^My/You/g' datafile
+#命令末端的g表示在行内进行全局替换，也就是说如果某行出现多个My，所有的My都被替换为You。
+
+sed -n '1,20s/My$/You/gp' datafile
+#取消默认输出，处理1到20行里匹配以My结尾的行，把行内所有的My替换为You，并打印到屏幕上。
+
+-e是编辑命令，用于sed执行多个编辑任务的情况下。在下一行开始编辑前，所有的编辑动作将应用到模式缓冲区中的行上。
+
+sed -e '1,10d' -e 's/My/Your/g' datafile
+#选项-e用于进行多重编辑。第一重编辑删除第1-3行。第二重编辑将出现的所有My替换为Your。因为是逐行进行这两项编辑（即这两个命令都在模式空间的当前行上执行），所以编辑命令的顺序会影响结果。
+
+```
+### top
+
+top -H 是把线程打出来
+
+top -o 是按照什么标准排序, 可以使 mem, cpu 等等
+
+top -n 1 表示刷新几次后停止
+
+### sort
+
+sort -nrk9
+
+k9 表示按照第 9 列排序, -n 是把这一列当做数字来排序, -r 表示逆序排列, 大的值放前面
+
+### awk
+
+**内置的参数**
+
+```shell
+ARGC  命令行参数个数
+NF    浏览记录的域个数
+AGRV  命令行参数排列
+NR    已读的记录数   
+ENVIRON  支持队列中系统环境变量的使用
+OFS   输出域分隔符
+FILENAME  awk浏览的文件名  
+ORS  输出记录分隔符
+FNR  浏览文件的记录数  
+RS  控制记录分隔符
+FS  设置输入域分隔符，同- F选项
+NF  浏览记录的域个数
+```
+
+```shell
+awk '{print NF，NR，$0} END {print FILENAME}' temp
+ 
+awk '{if (NR>0 && $4~/Brown/) print $0}' temp  至少存在一条记录且包含Brown
+ 
+NF的另一用法:  echo $PWD | awk -F/ '{print $NF}'   显示当前目录名
+```
+
+$NF 返回的是这一列的数据
+
+**内置的函数**
+
+```bash
+index(s，t)          返回s中字符串t的第一位置
+ 
+awk 'BEGIN {print index("Sunny"，"ny")}' temp     返回4
+ 
+length(s)           返回s的长度
+ 
+match(s，r)          测试s是否包含匹配r的字符串
+ 
+awk '$1=="J.Lulu" {print match($1，"u")}' temp    返回4
+ 
+split(s，a，fs)       在fs上将s分成序列a
+ 
+awk 'BEGIN {print split("12#345#6789"，myarray，"#")"'
+ 
+返回3，同时myarray[1]="12"， myarray[2]="345"， myarray[3]="6789"
+ 
+sprint(fmt，exp)     返回经fmt格式化后的exp
+ 
+sub(r，s)   从$0中最左边最长的子串中用s代替r(只更换第一遇到的匹配字符串)
+ 
+substr(s，p)         返回字符串s中从p开始的后缀部分
+ 
+substr(s，p，n)       返回字符串s中从p开始长度为n的后缀部分
+```
+
+注意事项
+
+awk 后的代码要使用单引号, 不能使用双引号, 如果需要在内部使用变量, 那么需要使用 -v option
+
+```
+top -n 1 -b | awk '$1==30406 {print $9}' // correct
+top -n 1 -b | awk "$1==$pid {print $9}" // error
+
+top -n 1 -b | awk -v "pid=$pid" '$1==pid {print $9}'
+```
+
+### ps
+
+### 在 man 中找到想要的 Option
+
+比如 grep -A 30 不知道 -A 的意思, 这时候就可以到 man 搜索
+
+man grep 然后
+
+```bash
+/^ *-A
+```
+
+这可以理解成正则表达式, 匹配任意个空格, 知道找到 -A
 
 ## usage
+
+### tcpConnectStatus.sh
+
+```bash
+netstat | awk '/^tcp/ {++S[$NF]}; END {for(a in S) { print a, S[a]}}'
+
+or
+netstat -tn | awk '/^tcp/ {++S[$NF]}; END {for(a in S) { print a, S[a]}}'
+```
+
+第二个效率高一些, 因为他帮忙滤掉了很多的非 tcp 请求
+
+如果需要排序的话, 可以按照 第二列排序 sort -nk2
+
+### show busy java threads
+
+```bash
+ps -Leo pid,lwp,user,comm,pcpu --no-headers | {
+    [ -z "${pid}" ] &&
+    awk '$4=="java"{print $0}' ||
+    awk -v "pid=${pid}" '$1==pid,$4=="java"{print $0}'
+} | sort -k5 -r -n | head --lines "${count}" | printStackOfThreads
+
+```
+
+PID 可以作为参数指定, 如果没给出的话, 就全部检索
+
+-L 表示显示线程, 也就是 lwp, comm 表示程序, pcpu 是 cpu 使用率
+
+count 可是参数, 默认情况下是 1, 用户可以指定
+
+```bash
+printStackOfThreads() {
+    local line
+    local count=1
+    while IFS=" " read -a line ; do # -a 表示把输入作为函数
+        local pid=${line[0]}
+        local threadId=${line[1]}
+        local threadId0x="0x`printf %x ${threadId}`"
+        local user=${line[2]}
+        local pcpu=${line[4]}
+
+        local jstackFile=/tmp/${uuid}_${pid}
+
+        [ ! -f "${jstackFile}" ] && {
+            {
+                if [ "${user}" == "${USER}" ]; then
+                    jstack ${pid} > ${jstackFile}
+                else
+                    if [ $UID == 0 ]; then
+                        sudo -u ${user} jstack ${pid} > ${jstackFile}
+                    else
+                        redEcho "[$((count++))] Fail to jstack Busy(${pcpu}%) thread(${threadId}/${threadId0x}) stack of java process(${pid}) under user(${user})."
+                        redEcho "User of java process($user) is not current user($USER), need sudo to run again:"
+                        yellowEcho "    sudo ${COMMAND_LINE[@]}"
+                        echo
+                        continue
+                    fi
+                fi
+            } || {
+                redEcho "[$((count++))] Fail to jstack Busy(${pcpu}%) thread(${threadId}/${threadId0x}) stack of java process(${pid}) under user(${user})."
+                echo
+                rm ${jstackFile}
+                continue
+            }
+        }
+        blueEcho "[$((count++))] Busy(${pcpu}%) thread(${threadId}/${threadId0x}) stack of java process(${pid}) under user(${user}):"
+        sed "/nid=${threadId0x} /,/^$/p" -n ${jstackFile}
+    done
+}
+```
+
+打印堆栈信息
+
+jstack $pid | grep $tid -A 30 // A 表示 30
+
+### show process cpu and memory
+
+```shell
+#!/bin/bash
+readonly cur_date="`date +%Y%m%d`"
+
+readonly total_mem="`free -m | grep 'Mem'`"
+readonly total_cpu="`top -n 1 | grep 'Cpu'`"
+
+echo '**********'$cur_date'**********'
+echo
+echo "total memory: $total_mem total cpu: $total_cpu"
+echo
+
+for pid in `ps -ef | awk 'NR > 0 {print $2}'` ; do
+    mem=`cat /proc/$pid/status 2> /dev/null | grep VmRSS | awk '{print $2 $3}'`
+    cpu=`top -n 1 -b | awk -v "pid=${pid}" '$1==pid {print $9}'`
+
+    echo "pid: $pid, memory: $mem, cpu:$cpu%"
+done
+
+```
+
+### find file in jar 
+
+```bash
+PROG=`basename $0`
+
+usage() {
+    cat <<EOF
+Usage: ${PROG} [OPTION]... PATTERN
+Find file in the jar files under specified directory(recursive, include subdirectory)
+Example: ${PROG} -d libs 'log4j\.properties$'
+Options:
+    -d, --dir       the directory that find jar files
+    -h, --help      display this help and exit
+EOF
+    exit $1
+}
+
+ARGS=`getopt -a -o d:h -l dir:,help -- "$@"`
+[ $? -ne 0 ] && usage 1
+eval set -- "${ARGS}"
+
+while true; do
+    case "$1" in
+    -d|--dir)
+        dir="$2"
+        shift 2
+        ;;
+    -h|--help)
+        usage
+        ;;
+    --)
+        shift
+        break
+        ;;
+    esac
+done
+[ -z "$1" ] && { echo No find file pattern! ; usage 1; }
+dir=${dir:-.}
+
+find ${dir} -iname '*.jar' | while read jarFile; do
+    jar tf ${jarFile} | egrep "$1" | while read file; do
+        echo "${jarFile}"\!"${file}"
+    done
+done
+```
+
+
+
+### for given PID find the most busy thread
+
+```bash
+#!/bin/bash
+
+if [ $# -eq 0 ];then
+    echo "please enter java pid"
+    exit -1
+fi
+
+pid=$1
+jstack_cmd=""
+
+if [[ $JAVA_HOME != "" ]]; then
+    jstack_cmd="$JAVA_HOME/bin/jstack"
+else
+    r=`which jstack 2>/dev/null`
+    if [[ $r != "" ]]; then
+        jstack_cmd=$r
+    else
+        echo "can not find jstack"
+        exit -2
+    fi
+fi
+
+#line=`top -H  -o %CPU -b -n 1  -p $pid | sed '1,/^$/d' | grep -v $pid | awk 'NR==2'`
+
+line=`top -H -b -n 1 -p $pid | sed '1,/^$/d' | sed '1d;/^$/d' | grep -v $pid | sort -nrk9 | head -1`
+echo "$line" | awk '{print "tid: "$1," cpu: %"$9}'
+tid_0x=`printf "%0x" $(echo "$line" | awk '{print $1}')`
+$jstack_cmd $pid | grep $tid_0x -A20 | sed -n '1,/^$/p'
+```
+
+这里的 , 应该是或者的意思
 
 ### copy files
 

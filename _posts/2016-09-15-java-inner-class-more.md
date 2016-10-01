@@ -148,6 +148,88 @@ scan_bt.setOnClickListener(new OnClickListener() {
 大部分匿名内部类用于接口回调。匿名内部类在编译的时候由系统自动起名为Outter$1.class。一般来说，
 匿名内部类用于继承其他类或是实现接口，并不需要增加额外的方法，只是对继承方法的实现或是重写。
 
+## why inner class can not have local variable non-final
+
+```java
+public class InnerClsFinal {
+    public void tst() {
+        int st = 0;
+
+        class inner {
+            public void say() {
+                System.out.println(st);
+            }
+        }
+    }
+}
+```
+
+内部类对应的字节码
+
+```java
+class play.InnerClsFinal$1inner {
+  final int val$st;
+
+  final play.InnerClsFinal this$0;
+
+  play.InnerClsFinal$1inner();
+    Code:
+       0: aload_0
+       1: aload_1
+       2: putfield      #1                  // Field this$0:Lplay/InnerClsFinal;
+       5: aload_0
+       6: iload_2
+       7: putfield      #2                  // Field val$st:I
+      10: aload_0
+      11: invokespecial #3                  // Method java/lang/Object."<init>":()V
+      14: return
+
+  public void say();
+    Code:
+       0: getstatic     #4                  // Field java/lang/System.out:Ljava/io/PrintStream
+       3: aload_0
+       4: getfield      #2                  // Field val$st:I
+       7: invokevirtual #5                  // Method java/io/PrintStream.println:(I)V
+      10: return
+}
+```
+
+从上面的代码中可以看出, 内部类是把局部变量变成了自己的 final 成员变量, 并在构造函数中对其赋值。
+
+c# 和 scala 遇到的问题
+
+```java
+List<Func<int>> actions = new List<Func<int>>();
+
+int variable = 0;
+while (variable < 5) {
+    actions.Add(() => variable * 2);
+    ++ variable;
+}
+
+foreach (var act in actions) {
+    Console.WriteLine(act.Invoke()); // c#, 全部返回 10
+}
+
+// 解决办法
+while (variable < 5) {
+    int copy = variable;
+    actions.Add(() => copy * 2);
+    ++ variable;
+}
+
+
+def received
+    val oriSender = sender()
+    oriSender ! Msg
+```
+
+闭包 closure, 表示在方法体里面引用外部的局部变量。像 scala(c#) 支持闭包, 方法体内直接只有外部局部变量的引用,
+这种做法的好处是灵活, 坏处是程序员可能会因此犯错。比如外部的值发生了变化以后, 方法里的值也会变化, 甚至说当方法体的
+逻辑被多线程执行时, 还会带来线程安全的问题。
+
+而 java 不支持闭包, 如果用到了外部局部变量, 他就在生成的内部类中创建一个 final 成员变量, 这样做的好处是安全, 坏处是
+不够灵活
 
 ## Exception
 
@@ -163,13 +245,20 @@ scan_bt.setOnClickListener(new OnClickListener() {
 码产生异常后清理资源。当然清理资源后，可以继续抛出非检测异常，阻止程序的执行。根据观察和理解，检测异常
 大多可以应用于工具类中
 
-@todo ?都知道哪些异常
+@todo ?都知道哪些异常 (在 Effective Java 中有提到)
+
+NullPointerException, RuntimeException, InterruptedException, OOM Exception, ArtimeException
+
+ConcurrentModificationException
+
+**Spring 专属的异常**
+
+
 
 ### 误区五、将异常包含在循环语句块中
 
 我们都知道异常处理占用系统资源。一看，大家都认为不会犯这样的错误。换个角度，类 A 中执行了一段循环，循环中调用了 B 类的
 方法，B 类中被调用的方法却又包含 try-catch 这样的语句块。
-
 
 ## IO
 

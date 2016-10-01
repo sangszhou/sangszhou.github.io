@@ -227,6 +227,15 @@ void purge
 
 scheduleAtFixedRate 的要点就是什么时候把下一个要执行的任务放到队列中 
 
+BlockingQueue<Runnable> workQueue // ThreadPool 中的 queue, 默认使用 DelayedWorkQueue, 这个 Queue 很像 DelayedQueue 
+但是并不是, 其内部的实现是 heap, 每次插入以后都会对 Heap 重组一下 siftUp 
+
+```java
+static class DelayedWorkQueue extends AbstractQueue<Runnable> implements BlockingQueue<Runnable>
+        private RunnableScheduledFuture<?>[] queue =
+            new RunnableScheduledFuture<?>[INITIAL_CAPACITY];
+```
+
 ```java
 ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initiaDelay, long period, TimeUnit unit)
   ScheduledFutureTask<Void> sft = new ScheduledFutureTask(command, null, triggerTime(initiaDelay, unit), NANOSECONDS)

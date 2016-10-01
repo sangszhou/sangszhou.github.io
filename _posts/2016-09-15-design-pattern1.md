@@ -63,6 +63,64 @@ keywords: design pattern
 
 注：在最终代码中，依赖关系体现为类构造方法及类方法的传入参数，箭头的指向为调用关系；依赖关系处理临时知道对方外，还是“使用”对方的方法和属性
 
+## 软件设计模式的分类
+
+**创建型**
+
+创建对象时，不再由我们直接实例化对象；而是根据特定场景，由程序来确定创建对象的方式，从而保证更大的性能、更好的架构优势。
+创建型模式主要有简单工厂模式（并不是23种设计模式之一）、工厂方法、抽象工厂模式、单例模式、生成器(Builder)模式和原型模式
+
+**结构型**
+
+用于帮助将多个对象组织成更大的结构。结构型模式主要有适配器模式 adapter、桥接模式 bridge、组合器模式 component、
+装饰器模式 decorator、门面模式、亨元模式 flyweight 和代理模式 proxy
+
+**行为型**
+
+用于帮助系统间各对象的通信，以及如何控制复杂系统中流程。行为型模式主要有命令模式command、解释器模式、迭代器模式、中介者模式、
+备忘录模式、观察者模式、状态模式state、策略模式、模板模式和访问者模式
+
+
+## 单例模式
+
+有些时候，允许自由创建某个类的实例没有意义，还可能造成系统性能下降。如果一个类始终只能创建一个实例，则这个类被称为单例类，
+这种模式就被称为单例模式。
+
+一般建议单例模式的方法命名为：getInstance()，这个方法的返回类型肯定是单例类的类型了。getInstance方法可以有参数，
+这些参数可能是创建类实例所需要的参数，当然，大多数情况下是不需要的
+
+```java
+public class Singleton {
+   
+    public staticvoid main(String[] args) {
+       //创建Singleton对象不能通过构造器，只能通过getInstance方法
+       Singleton s1 = Singleton.getInstance();
+       Singleton s2 = Singleton.getInstance();
+       //将输出true
+       System.out.println(s1 == s2);
+    }
+   
+    //使用一个变量来缓存曾经创建的实例
+    private static Singleton instance;
+    //将构造器使用private修饰，隐藏该构造器
+    private Singleton(){
+       System.out.println("Singleton被构造！");
+    }
+   
+    //提供一个静态方法, 用于返回 Singleton 实例
+    //该方法可以加入自定义的控制，保证只产生一个Singleton对象
+    public static Singleton getInstance() {
+       //如果instance为null，表明还不曾创建Singleton对象
+       //如果instance不为null，则表明已经创建了Singleton对象，将不会执行该方法
+       if (instance == null) {
+           //创建一个Singleton对象，并将其缓存起来
+           instance = new Singleton();
+       }
+       return instance;
+    }
+}
+```
+
 
 ## 观察者模式
 
@@ -76,18 +134,27 @@ keywords: design pattern
 
 ![](/images/posts/java/bridgePattern.jpg)
 
-在桥接模式中，Abstraction通过聚合的方式引用Implementor
+在桥接模式中，Abstraction 通过聚合的方式引用 Implementor
 
 ![](/images/posts/java/strategyPattern.jpg)
 
 **策略模式:** 我要画圆，要实心圆，我可以用solidPen来配置，画虚线圆可以用dashedPen来配置。这是strategy模式。 
+
+策略模式用于封装系列的算法，这些算法通常被封装在一个被称为Context的类中，客户端程序可以自由选择其中一种算法，
+或让Context为客户端选择一种最佳算法——使用策略模式的优势是为了支持算法的自由切换。
+
 
 **桥接模式:** 同样是画圆，我是在windows下来画实心圆，就用windowPen+solidPen来配置，在unix下画实心圆就用unixPen+solidPen来配置。
 如果要再windows下画虚线圆，就用windowsPen+dashedPen来配置，要在unix下画虚线圆，就用unixPen+dashedPen来配置
 
 画圆方法中，策略只是考虑算法的替换，而桥接考虑的则是不同平台下需要调用不同的工具，接口只是定义一个方法，而具体实现则由具体实现类完成。 
 
-**桥接模式:** 不仅Implementor具有变化（ConcreteImplementor），而且Abstraction也可以发生变化（RefinedAbstraction），
+由于实际的需要，某个类具有两个以上的维度变化，如果只是使用继承将无法实现这种需要，或者使得设计变得相当臃肿。
+而桥接模式的做法是把变化部分抽象出来，使变化部分与主类分离开来，从而将多个的变化彻底分离。
+最后提供一个管理类来组合不同维度上的变化，通过这种组合来满足业务的需要。
+
+
+**桥接模式:** 不仅 Implementor 具有变化（ConcreteImplementor），而且Abstraction也可以发生变化（RefinedAbstraction），
 而且两者的变化是完全独立的，RefinedAbstraction与ConcreateImplementor之间松散耦合，它们仅仅
 通过Abstraction与Implementor之间的关系联系起来。强调Implementor接口仅提供基本操作，而Abstraction则基于这些基
 本操作定义更高层次的操作
@@ -95,9 +162,9 @@ keywords: design pattern
 **策略模式:** 并不考虑Context的变化，只有算法的可替代性。强调Strategy抽象接口的提供的是一种算法，
 一般是无状态、无数据的，Context简单调用这些算法完成其操作
 
-所以相对策略模式，桥接模式要表达的内容要更多，结构也更加复杂。 
+所以相对策略模式，桥接模式要表达的内容要更多，结构也更加复杂
 
-桥接模式表达的主要意义其实是接口隔离的原则，即把本质上并不内聚的两种体系区别开来，使得它们可以松散的组合，
+桥接模式表达的主要意义其实是**接口隔离**的原则，即把本质上并不内聚的两种体系区别开来，使得它们可以松散的组合，
 而策略在解耦上还仅仅是某一个算法的层次，没有到体系这一层次。 
 
 从结构图中可以看到，策略模式的结构是包容在桥接模式结构中的，Abstraction与Implementor之间就可以认为是策略模式，
@@ -208,6 +275,9 @@ pb2->eat();
 ```
 
 ## 责任链模式
+
+解决判断的一个很好的办法就是责任链模式, 
+另外一个对于根据数据的内容, 而不是业务逻辑来做判断时, 责任链模式特别有效
 
 ```java
 final class ApplicationFilterChain implements FilterChain {
@@ -395,3 +465,143 @@ public class PrintVisitor implements IVisitor {
 
 @todo
 Velocity 好像也是 visitor 模式吧, 到时候总结
+
+## 代理模式
+
+代理模式是一种应用非常广泛的设计模式，当客户端代码需要调用某个对象时，客户端实际上不关心是否准确得到该对象，
+它只要一个能提供该功能的对象即可，此时我们就可返回该对象的代理（Proxy)
+
+借助于Java提供的Proxy和InvocationHandler，可以实现在运行时生成动态代理的功能，而动态代理对象就可以作为目标对象使用，而且增强了目标对象的功能。如：
+
+Hibernate默认启用延迟加载，当系统加载A实体时，A实体关联的B实体并未被加载出来，A实体所关联的B实体全部是代理对象——只有等到A实体真正需要访问B实体时，系统才会去数据库里抓取B实体所对应的记录。
+
+```java
+public class ImageProxy implements Image {
+    //组合一个image实例，作为被代理的对象
+    private Image image;
+    
+    //使用抽象实体来初始化代理对象
+    public ImageProxy(Image image) {
+       this.image = image;
+    }
+    
+    /**
+     * 重写Image接口的show()方法
+     * 该方法用于控制对被代理对象的访问，
+     * 并根据需要负责创建和删除被代理对象
+     */
+    public void show() {
+       //只有当真正需要调用 image 的 show 方法时才创建被代理对象
+       if (image == null) {
+           image = new BigImage();
+       }
+       image.show();
+    }
+}
+```
+
+
+## 命令模式
+
+某个方法需要完成某一个功能，完成这个功能的大部分步骤已经确定了，但可能有少量具体步骤无法确定，必须等到执行该方法时才可以确定。
+（在某些编程语言如Ruby、Perl里，允许传入一个代码块作为参数。但Jara暂时还不支持代码块作为参数）。在Java中，
+传入该方法的是一个对象，该对象通常是某个接口的匿名实现类的实例，该接口通常被称为命令接口，这种设计方式也被称为命令模式。
+
+```java
+public interface Command {
+    //接口里定义的process方法用于封装“处理行为”
+    void process(int[] target);
+}
+
+public class ProcessArray {
+    //定义一个each()方法，用于处理数组，
+    publicvoid each(int[] target , Command cmd) {
+       cmd.process(target);
+    }
+}
+
+public class TestCommand {
+    public static void main(String[] args) {
+       ProcessArray pa = new ProcessArray();
+       int[] target = {3, -4, 6, 4};
+       //第一次处理数组，具体处理行为取决于Command对象
+       
+       pa.each(target , new Command() {
+           //重写process()方法，决定具体的处理行为
+           publicvoid process(int[] target) {
+              for (int tmp : target ) {
+                  System.out.println("迭代输出目标数组的元素:" + tmp);
+              }
+           }
+       });
+       
+       System.out.println("------------------");
+       //第二次处理数组，具体处理行为取决于Command对象
+       pa.each(target , new Command() {
+           //重写process方法，决定具体的处理行为
+           publicvoid process(int[] target) {
+              int sum = 0;
+              for (int tmp : target ) {
+                  sum += tmp;         
+              }
+              System.out.println("数组元素的总和是:" + sum);
+           }});}}
+```
+
+好像和 template pattern 很像
+
+HibernateTemplate使用了executeXxx()方法弥补了HibernateTemplate的不足，该方法需要接受一个HibernateCallback接口，该接口的代码如下：
+
+```java
+public interface HibernateCallback {
+       Object doInHibernate(Session session);
+}
+```
+
+## 门面模式
+
+随着系统的不断改进和开发，它们会变得越来越复杂，系统会生成大量的类，这使得程序流程更难被理解。门面模式可为这些类提供一个简化的接口，从而简化访问这些类的复杂性。
+
+门面模式（Facade）也被称为正面模式、外观模式，这种模式用于将一组复杂的类包装到一个简单的外部接口中。
+
+**原来的方式**
+
+```java
+       // 依次创建三个部门实例
+       Payment pay = new PaymentImpl();
+       Cook cook = new CookImpl();
+       Waiter waiter = new WaiterImpl();
+       // 依次调用三个部门实例的方法来实现用餐功能
+       String food = pay.pay();
+       food = cook.cook(food);
+       waiter.serve(food);
+```
+
+**门面模式**
+
+```java
+publi cclass Facade {
+    // 定义被Facade封装的三个部门
+    Payment pay;
+    Cook cook;
+    Waiter waiter;
+ 
+    // 构造器
+    public Facade() {
+       this.pay = new PaymentImpl();
+       this.cook = new CookImpl();
+       this.waiter = new WaiterImpl();
+    }
+ 
+    publicvoid serveFood() {
+       // 依次调用三个部门的方法，封装成一个serveFood()方法
+       String food = pay.pay();
+       food = cook.cook(food);
+       waiter.serve(food);
+    }
+}
+
+Facade f = new Facade();
+f.serveFood();
+```
+
