@@ -84,7 +84,7 @@ Actor 有两种挂载点，第一种是以 route 的方式存在，挂载在一�
 
 ```
 akka.actor.deployment {
-    "/service/dlp-fetch" {
+    "/service/dlp-fetch" { // 他用的是哪个 dispatcher
         router = round-robin-pool
         nr-of-instance = 5
     }

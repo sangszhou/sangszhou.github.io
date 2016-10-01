@@ -30,6 +30,9 @@ Arrays.asList( "a", "b", "d" ).sort( ( e1, e2 ) -> {
 } );
 ```
 
+**Java 的 Lambda 表示式是把 e -> println(e) 改成 Function 对象, 而 java 可能是改成 functional interface 加上
+Function 对象**
+
 Language designers put a lot of thought on how to make already existing functionality lambda-friendly. 
 As a result, the concept of functional interfaces has emerged. The function interface is an interface with 
 just one single method. As such, it may be implicitly converted to a lambda expression.

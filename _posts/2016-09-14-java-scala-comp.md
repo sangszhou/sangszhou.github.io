@@ -49,6 +49,8 @@ val f2: Future[List[Int]] = Future.sequence(f1)
 f2.map(_.foreach(println))
 ```
 
+@todo 把 sequence 函数的实现整合进来
+
 分析上面两段代码, 首先 scala Future 里的是 string, 而 java arrays 放的是 Function, 这有所区别,
 但是 java arrays 放 function 的原因是 invokeAll 只接受 function, 对于 Future, 它也接受 function (代码块),
 但同时接受一个变量, 其内部实现是直接返回, 不用到 threadpool 里面再跑一遍了

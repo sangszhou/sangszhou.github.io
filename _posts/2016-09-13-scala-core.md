@@ -111,6 +111,20 @@ public class ClassFIle {
 
 ## List
 
+@todo missing foldLeft 的实现
+
+```scala
+def foldLeft[B](z: B)(f: (B, A) => B): B = {
+    var acc = z
+    var these = this
+    while (!these.isEmpty) {
+      acc = f(acc, these.head)
+      these = these.tail
+    }
+    acc
+}
+```
+
 ```scala
 def flatMap[B, That](f: A => GenTraversableOnce[B])(implicit bf: CanBuildFrom[Repr, B, That]): That = {
     def builder = bf(repr) // extracted to keep method size under 35 bytes, so that it can be JIT-inlined
@@ -199,9 +213,9 @@ def firstCompletedOf[T](futures: TraversableOnce[Future[T]])(implicit executor: 
     val completeFirst: Try[T] => Unit = p tryComplete _
     futures foreach { _ onComplete completeFirst }
     p.future
-  }
-  
+}
 
+// 通过计数器知道是否全部遍历结束了
 def find[T](futurestravonce: TraversableOnce[Future[T]])(predicate: T => Boolean)(implicit executor: ExecutionContext): Future[Option[T]] = {
     val futures = futurestravonce.toBuffer
     if (futures.isEmpty) Promise.successful[Option[T]](None).future
@@ -222,6 +236,26 @@ def find[T](futurestravonce: TraversableOnce[Future[T]])(predicate: T => Boolean
       futures.foreach(_ onComplete search)
 
       result.future
+    }
+  }
+```
+
+
+```scala
+def apply[T](body: =>T)(implicit execctx: ExecutionContext): Future[T] = impl.Future(body)
+
+def apply[T](body: =>T)(implicit executor: ExecutionContext): scala.concurrent.Future[T] = {
+    val runnable = new PromiseCompletingRunnable(body)
+    executor.prepare.execute(runnable)
+    runnable.promise.future
+}
+
+class PromiseCompletingRunnable[T](body: => T) extends Runnable {
+    val promise = new Promise.DefaultPromise[T]()
+    override def run() = {
+      promise complete {
+        try Success(body) catch { case NonFatal(e) => Failure(e) }
+      }
     }
   }
 ```

@@ -37,6 +37,8 @@ grep –c  “ABC” file1
 
 ## How will you emulate wc –l using awk?
 
+NR 是行数, NF 是分隔符
+
 ```
 awk ‘END {print NR} fileName’
 ```
@@ -130,10 +132,34 @@ mkdir -p
 
 ## 将字符串里的字母逐个放入数组，并输出到“标准输出”
 
+获取数组长度, 记住外面的是 {} 而不是 ()
+
+```bash
+echo ${#a[@]}
+
+echo ${array[index]} // get by index
+
+#copy
+ary=${str[*]}
+
+str="ABC"
+echo ${#str[@]} // length
+echo ${str[*]} // all elements
+```
+
+**遍历**
+
+```bash
+for data in ${array[@]}  
+do  
+    echo ${data}  
+done  
+```
+
 ```bash
 chars='abcdefghijklmnopqrstuvwxyz'
 
-for (( i=0; i<26; i++ )) ; do
+for (( i=0; i<26; i++ )) ; do // 记住这个 for 循环的写法
     array[$i]=${chars:$i:1}
     echo ${array[$i]}
 done
@@ -159,6 +185,8 @@ cat /etc/passwd |awk  -F ':'  'BEGIN {print "name,shell"}  {print $1","$7} END {
 
 awk 也就是三步而已, 开始 BEGIN, 然后是中间的操作, 然后是 END, 如果开始符号没有的话, 就直接 {}, 就像第一行代码展示的一样
 
+file name 要写在外面
+
 ```
 awk 'END {print NR}' filename.txt 效果等同于 wc -l filename.txt
 ```
@@ -179,6 +207,8 @@ ls | tee file1 file2 file3
 ```
 
 ## netstat 测试
+
+grep port 的时候不需要指定 LocalAddress 或 RemoteAddress 么
 
 ```bash
 meterapi.sh
@@ -241,6 +271,8 @@ w-x-y-z
 Note that in both examples, the shell will still treat all of the characters :, - and ; as word boundaries. The only thing that changes is the behaviour of $*.
 
 ## xargs
+
+标准输出转化成参数
 
 But what about the general case. What you really want is to convert stdout of one command to command line args of another. As others have said, xargs is the canonical helper tool in this case, reading its command line args for a command from its stdin, and constructing commands to run.
 
@@ -316,7 +348,7 @@ getopt.sh
 
 1. OPTARG 存储相应选项的参数 OPTIND指向的是下一个参数的index
 2. shift 会改变参数的顺序，通过左移去掉某些参数
-3. getopts检测到非法参数就会停止，比如上例中遇到34就会终止
+3. getopts 检测到非法参数就会停止，比如上例中遇到34就会终止
 4. unset OPTIND  可以解决shell脚本的函数中使用getopts
 
 使用 shift 而不是 getopts 这种可能更灵活吧
