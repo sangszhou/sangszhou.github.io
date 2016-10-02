@@ -83,7 +83,7 @@ public class Parcel5 {
 它的生命周期超出方法运行的生命周期，由于局部变量被设置为final，所以不能再内部类中改变局部变量的值。
 （这里看到网上有不同的解释，还没有彻底搞清楚==）
 
-但这个例子里, 没有 final 不也正常么
+effective final 所以不需要静态内部类
 
 ### 静态嵌套类
 
@@ -111,6 +111,8 @@ public class test1 {
     }
 }
 ```
+
+private 的静态内部类, 外部类也可以访问的到
 
 ### 匿名内部类
 
@@ -404,6 +406,8 @@ Java I/O 中的是配置模式：InputStreamReader，字符和字节数据转换
 ![](/images/posts/java/InputStreamReader.png)
 
 ### 装饰器模式结构
+
+Netty 的 HttpConnectionPool 也是用了装饰者模式 
 
 ![](/images/posts/java/decorator.png)
 

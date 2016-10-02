@@ -5,6 +5,22 @@ categories: [concurrent]
 keywords: java, concurrent
 ---
 
+## FAQ
+
+1: 如何实现 Blocking Queue
+
+查看 java 的源代码
+
+2: 为什么 lock 要和 condition 在一起
+
+因为 condition 在 wait 的时候要把自己的锁释放掉
+
+3: 读写者问题怎么用 java 实现
+
+4: Thread 的源代码
+
+5: Synchronized 的实现原理, 他和 instance 元数据之间的关系
+
 ## 生产者消费者问题
 
 生产者消费者问题是研究多线程程序时绕不开的经典问题之一，它描述是有一块缓冲区作为仓库，生产者可以将产品放入仓库，
