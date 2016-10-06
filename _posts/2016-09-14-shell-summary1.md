@@ -67,6 +67,9 @@ If parameter is unset or null, the expansion of word is substituted.
 
 Otherwise, the value of parameter is substituted.
 
+mac 下不可以用, linux 才可用
+
+注意 $ 符号
 
 
 ## regex
@@ -164,7 +167,9 @@ cpArr=( ${ARRAY[@]} ) 必须是 @ 不能是 *, 必须加 ()
 
 ### sed
 
-**选择性打印**
+**选择性打印 p(Pick)**
+
+p 应该是 pick 的意思, d 是 delete
 
 sed -n ’10p’ file.txt 打印出第十行，打印不出就报错
 
@@ -185,6 +190,8 @@ sed -n ‘1,5p’ file.txt 打印出第 1 到第 10 行
 -i 表示 inplace, -e command
 
 下文提到的，还没用过的知识有：
+
+好像数字之后不需要加 / 可以直接跟 p 或者 d, 但是字符串的前后都要加上 / 符号
 
 ```bash
 
@@ -214,15 +221,24 @@ s 命令表示替换
 sed 's/^My/You/g' datafile
 #命令末端的g表示在行内进行全局替换，也就是说如果某行出现多个My，所有的My都被替换为You。
 
-sed -n '1,20s/My$/You/gp' datafile
+sed -n '1,20s/My$/You/gp' datafile // verified, 怎么能替换整行呢?
 #取消默认输出，处理1到20行里匹配以My结尾的行，把行内所有的My替换为You，并打印到屏幕上。
 
 -e是编辑命令，用于sed执行多个编辑任务的情况下。在下一行开始编辑前，所有的编辑动作将应用到模式缓冲区中的行上。
 
 sed -e '1,10d' -e 's/My/Your/g' datafile
-#选项-e用于进行多重编辑。第一重编辑删除第1-3行。第二重编辑将出现的所有My替换为Your。因为是逐行进行这两项编辑（即这两个命令都在模式空间的当前行上执行），所以编辑命令的顺序会影响结果。
-
+#选项-e用于进行多重编辑。第一重编辑删除第1-3行。第二重编辑将出现的所有My替换为Your。
+因为是逐行进行这两项编辑（即这两个命令都在模式空间的当前行上执行），所以编辑命令的顺序会影响结果。
 ```
+
+上面提到了一个问题 即用 You 替换 My 结尾的一行该怎么办, 我想, 应该是使用
+
+好像预先替换某一个行没什么办法, 下面这个写法语法没问题, 但是报错
+
+```bash
+sed -n -e '/df$/p' -e 's/.*/You/g' abc
+```
+
 ### top
 
 top -H 是把线程打出来
