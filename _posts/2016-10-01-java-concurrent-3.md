@@ -161,6 +161,7 @@ protected final boolean tryAcquire(int acquires) {
     int w = exclusiveCount(c); // write number
     
     if (c != 0) { // 锁已经被持有
+        // 从下面的判断可以看出, readLock 不能提升为 write lock, 因为 w == 0 时(是读锁), 直接返回 false
         if (w == 0 || current != getExclusiveOwnerThread()) // 锁被 ReadThread 持有 或者自己不是写锁的持有者
             return false;
         if (w + exclusiveCount(acquires) > MAX_COUNT)
@@ -190,7 +191,12 @@ protected final boolean tryRelease(int releases) {
 
 release 操作就简单的多了, 就和 Reentrant lock 一样了
 
-
+The API for ReentrantReadWriteLock states that downgrading from a write lock to a read lock is possible, 
+but upgrading is not. Which means it's not possible to get a write lock while you have a read lock; 
+you need to release the read first. This makes sense - what if you had two threads with read locks, 
+and both tried to upgrade? Neither could acquire the write lock until the other gave up the read lock, and that 
+wouldn't happen unless the coder explicitly unlocked the read lock before acquiring the write lock. In which 
+case it's not really an upgrade, it's a read lock followed by no lock followed by a write lock. That's just what you have to do.
 
 **ReadLock**
 
