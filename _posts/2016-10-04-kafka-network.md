@@ -1,3 +1,10 @@
+---
+layout: post
+title: Kafka networking
+categories: [kafka]
+keywords: kafka, java, nio
+---
+
 ## Socket Server 
 
 ![](/images/posts/kafka/kafka_broker_internals.png)

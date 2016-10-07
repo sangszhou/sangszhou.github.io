@@ -165,7 +165,13 @@ echo ${ARRAY[*]}
 cpArr=( ${ARRAY[@]} ) 必须是 @ 不能是 *, 必须加 ()
 ```
 
+对数组的循环?
+
+
+
 ### sed
+
+p, d, 行数, 替换, 多重编辑, quite
 
 **选择性打印 p(Pick)**
 
@@ -194,7 +200,6 @@ sed -n ‘1,5p’ file.txt 打印出第 1 到第 10 行
 好像数字之后不需要加 / 可以直接跟 p 或者 d, 但是字符串的前后都要加上 / 符号
 
 ```bash
-
 sed -n ‘1,5p’ fileName.md 只查看第
 
 sed -n ‘1,4d’ fileName.md 删除第 1 到第 4 行
@@ -254,6 +259,10 @@ sort -nrk9
 k9 表示按照第 9 列排序, -n 是把这一列当做数字来排序, -r 表示逆序排列, 大的值放前面
 
 ### awk
+
+问题:
+
+awk + if, awk + 选择性, NF NR FILENAME, BEGIN END, 分隔符, 内置函数 
 
 **内置的参数**
 
@@ -338,6 +347,8 @@ man grep 然后
 ## usage
 
 ### tcpConnectStatus.sh
+
+注意没有 $ 符号
 
 ```bash
 netstat | awk '/^tcp/ {++S[$NF]}; END {for(a in S) { print a, S[a]}}'
@@ -432,8 +443,9 @@ for pid in `ps -ef | awk 'NR > 0 {print $2}'` ; do
 
     echo "pid: $pid, memory: $mem, cpu:$cpu%"
 done
-
 ```
+
+只有极个别的符号可以在 awk 中用 $ 修饰
 
 ### find file in jar 
 
@@ -483,7 +495,7 @@ done
 
 
 
-### for given PID find the most busy thread
+### for given PID find the most busy thread(CPU 占用率最高的)
 
 ```bash
 #!/bin/bash
@@ -511,8 +523,11 @@ fi
 #line=`top -H  -o %CPU -b -n 1  -p $pid | sed '1,/^$/d' | grep -v $pid | awk 'NR==2'`
 
 line=`top -H -b -n 1 -p $pid | sed '1,/^$/d' | sed '1d;/^$/d' | grep -v $pid | sort -nrk9 | head -1`
+
 echo "$line" | awk '{print "tid: "$1," cpu: %"$9}'
+
 tid_0x=`printf "%0x" $(echo "$line" | awk '{print $1}')`
+
 $jstack_cmd $pid | grep $tid_0x -A20 | sed -n '1,/^$/p'
 ```
 
@@ -543,7 +558,9 @@ copy_files() {
 }
 ```
 
-cp -f 应该是递归创建文件目录的意思吧
+cp -f If the destination file cannot be opened, remove it and create a
+                 new file, without prompting for confirmation regardless of its per-
+                 missions.  (The -f option overrides any previous -n option.)
 
 ### chmod
 
@@ -677,6 +694,7 @@ day 1
 
 ```bash
 # Solution1:
+看来在 awk 里也是可以使用  $i 的, 以前的理解还是不对
 awk '{for(i=1;i<=NF;i++) a[$i]++} END {for(k in a) print k,a[k]}' words.txt | sort -k2 -nr
 
 #Solution2:
@@ -721,12 +739,12 @@ echo "$IP/$NETMASK"
 exit
 ```
 
-### 将一目录下所有的文件的扩展名改为bak
+### 将一目录下所有的文件的扩展名改为 bak
 
 ```shell
 for i in *.*;
     do 
-        mv $i ${i%%.*}.bak;
+        mv $i ${i%%.*}.bak ## 这个 .* 而不是 *.*, 因为它是 strip 的过程
     done
 ```
 

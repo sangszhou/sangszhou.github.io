@@ -11,6 +11,15 @@ keywords: java, concurrent, blockingQueue
 1. poll 应该放到 offer 前面写
 2. DelayedQueue 和 Blocking queue 一起写, 并总结子类的用途
 
+
+###FAQ 
+
+**新加入元素的的 delay 比老元素更小怎么办?**
+
+这个时候在 offer 函数中, q.offer(e) == e 就成立了, wakeup waiting thread
+
+
+
 DelayedQueue 中的元素类型为 `? extends Delayed`, 也就说 queue 内的元素在 getDelay 返回 0 时才有效，
 在 getDelay > 0 时尝试获取元素的请求都将被阻塞或返回空
 
