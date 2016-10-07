@@ -290,7 +290,8 @@ JVM基于上述类加载器，通过双亲委派模型进行类的加载，当�
 
 The reason for having the three basic class loaders (Bootstrap, extension, system) is mostly security.
 
-Prior to version 1.2 of the JVM, there was just one default class loader, which is what is currently called the "Bootstrap" class loader.
+Prior to version 1.2 of the JVM, there was just one default class loader, which is what is currently called 
+the "Bootstrap" class loader.
 
 The way classes are loaded by class loaders is that each class loader first calls its parent, and if that parent 
 doesn't find the requested class, the current one is looking for it itself.
@@ -300,7 +301,9 @@ if you didn't specifically mention private, public or protected) unless the clas
 from the same class loader that loaded the class it wishes to access.
 
 So, suppose a user calls his class java.lang.MyClass. Theoretically, it could get package access to all the fields 
-and methods in the java.lang package and change the way they work. The language itself doesn't prevent this. But the JVM will block this, because all the real java.lang classes were loaded by bootstrap class loader. Not the same loader = no access.
+and methods in the java.lang package and change the way they work. The language itself doesn't prevent this. But 
+the JVM will block this, because all the real java.lang classes were loaded by bootstrap class loader. Not the same 
+loader = no access.
 
 There are other security features built into the class loaders that make it hard to do certain types of hacking.
 
@@ -308,7 +311,9 @@ So why three class loaders? Because they represent three levels of trust. The cl
 the core API classes. Next are installed extensions, and then classes that appear in the classpath, which means they 
 are local to your machine.
 
-For a more extended explanation, refer to Bill Venners's "Inside the Java Virtual Machine".
+2. Then you want to be able todeploy another application in Tomcat. Maybe this second application uses a 
+library that the first one also uses, but in a different version. So you want each app to have its own isolated 
+class loader, otherwise the classes of app 2 might interfere badly with the classes from app 1.
 
 
 ### 尝试绕过双亲委派
@@ -417,7 +422,10 @@ privatestaticsynchronizedvoid initSystemClassLoader() {
 如果不用委托而是自己加载自己的，那么类A就会加载一份System字节码，然后类B又会加载一份System字节码，这样内存中就出现了两份System字节码。
 如果使用委托机制，会递归的向父类查找，也就是首选用Bootstrap尝试加载，如果找不到再向下。这里的System就能在Bootstrap中找到然后加载，如果此时类B也要加载System，也从Bootstrap开始，此时Bootstrap发现已经加载过了System那么直接返回内存中的System即可而不需要重新加载，这样内存中就只有一份System的字节码了。
 
-### 能不能自己写个类叫java.lang.System？
+
+
+
+### 能不能自己写个类叫 java.lang.System？
     
 答案：通常不可以，但可以采取另类方法达到这个需求。 
 

@@ -1,3 +1,10 @@
+---
+layout: post
+title: kafka source code3
+categories: [kafka]
+keywords: kafka
+---
+
 ## Consumer(2) Fetcher
 
 获取TopicMetadata,使用生产者模式发送一个需要响应结果的TopicMetadataRequest.

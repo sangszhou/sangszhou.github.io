@@ -1,3 +1,10 @@
+---
+layout: post
+title: kafka networking
+categories: [kafka]
+keywords: kafka
+---
+
 ## Socket Server 
 
 ![](/images/posts/kafka/kafka_broker_internals.png)
@@ -57,7 +64,9 @@ def run() {
           while (iter.hasNext && isRunning) {
               val key = iter.next
               iter.remove()
-              if (key.isAcceptable) accept(key, processors(currentProcessor))
+              if (key.isAcceptable) 
+                accept(key, processors(currentProcessor))
+              
               // round robin to the next processor thread
               currentProcessor = (currentProcessor + 1) % processors.length }}}
 

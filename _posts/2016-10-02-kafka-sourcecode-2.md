@@ -1,3 +1,10 @@
+---
+layout: post
+title: kafka source code2
+categories: [kafka]
+keywords: kafka
+---
+
 ## Kafka 0.8.2 新的offset管理
 
 之前Kafka存在的一个非常大的性能问题(隐患)就是利用ZK来记录各个Consumer Group的消费进度。当然JVM Client帮我们自动做了这些事情，

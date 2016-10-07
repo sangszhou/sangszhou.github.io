@@ -211,6 +211,8 @@ and better performing than uncontended synchronization,[3] the idiom can only be
 Something can be guaranteed to not fail. In most JVM implementations, if construction of Something fails, subsequent 
 attempts to initialize it from the same class-loader will result in a NoClassDefFoundError failure.
 
+从上面可以看出, static 内部类不受外部类的制约, 且 private static class 的 private static 属性可以被外界所用到
+
 [why the double check is broken](http://www.cs.umd.edu/~pugh/java/memoryModel/DoubleCheckedLocking.html)
 
 ## Dark size of scala
@@ -365,6 +367,14 @@ Think about a game character. In games, speed is top priority, so representing y
 
 Moreover, our perception of the real world is inevitably based on mutable objects. When you fill up your car with fuel at the gas station, you perceive it as the same object all along (i.e. its identity is maintained while its state is changing) - not as if the old car with an empty tank got replaced with consecutive new car instances having their tank gradually more and more full. So whenever we are modeling some real-world domain in a program, it is usually more straightforward and easier to implement the domain model using mutable objects to represent real-world entities.
 
+举个例子, 哪些 collection 看起来是 mutable 的, 但是用 immutable 实现也没问题
+
+cache 使用 mutable 的 map
+
+游戏人物 level 是 mutable 的, 但是 id 是 immutable 的
+
+
+
 ## 函数作为一等公民体现在哪里
 
 1. 可传递, 赋值
@@ -382,7 +392,7 @@ def foo(f: () => String)
     println("111")
     println(f() + "OK")
 
-foo( { println("AAA"; () => "AAA")
+foo( { println("AAA"; () => "AAA"} )
 ```
 
 f 是函数, 而给的参数是表达式, 所以应该是值吧
@@ -394,7 +404,7 @@ def bar(f: => String)
     println("111")
     println(f + "OK")
 
-bar({println("AAA"); "AAA"})
+bar( {println("AAA"); "AAA"} )
 ```
 
 传名吧, 结果是 111 AAA, AAAOK
