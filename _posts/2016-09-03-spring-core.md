@@ -442,6 +442,210 @@ class CglibAopProxy implements AopProxy
 
 ```
 
+
+### what is Bean Factory, have you used XMLBeanFactory?
+
+Ans: BeanFactory is factory Pattern which is based on IOC design principles.it is used to make a clear separation between application configuration and dependency from actual code. The XmlBeanFactory is one of the implementations of bean Factory which we have used in our project. The org.springframework.beans.factory.xml.XmlBeanFactory is used to create bean instance defined in our XML file.
+
+```java
+BeanFactory factory = new XmlBeanFactory(new FileInputStream("beans.xml"));
+Or
+
+ClassPathResource resorce = new ClassPathResource("beans.xml"); 
+XmlBeanFactory factory = new XmlBeanFactory(resorce);
+```
+
+### Question 4: What are the difference between BeanFactory and ApplicationContext in spring? (answer) @todo
+
+ApplicationContext is the preferred way of using spring because of functionality provided by it and interviewer 
+wanted to check whether you are familiar with it or not.
+
+### Explain the Spring Bean-LifeCycle
+
+Ans: Spring framework is based on IOC so we call it as IOC container also So Spring beans reside inside the IOC container. 
+Spring beans are nothing but Plain old java object (POJO).
+
+Following steps explain their life cycle inside the container.
+
+1. The container will look the bean definition inside configuration file (e.g. bean.xml).
+2. using reflection container will create the object and if any property is defined inside the bean definition then it will also be set.
+3. If the bean implements the `BeanNameAware` interface, the factory calls setBeanName() passing the bean’s ID.
+4. If the bean implements the `BeanFactoryAware` interface, the factory calls setBeanFactory(), passing an instance of itself.
+5. If there are any BeanPostProcessors associated with the bean, their post- ProcessBeforeInitialization() methods will be called before the properties for the Bean are set.
+6. If an init() method is specified for the bean, it will be called.
+7. If the Bean class implements the DisposableBean interface, then the method destroy() will be called when the Application no longer needs the bean reference.
+8. If the Bean definition in the Configuration file contains a 'destroy-method' attribute, then the corresponding method definition in the Bean class will be called.
+
+1)  Spring对Bean 进行实例化．
+2)  Spring 将值和Bean的引用注入进Bean对应的属性中。
+3)  如果Bean 实现了BeanNameAware 接口， Spring 将bean 的ID 传递给setBeanName() 接口方法．
+4)  如果Bean实现了BeanFactoryAware 接口， Spring 将调用setBeanFactory()接口方法，将BeanFactory容器实例传入．
+5)  如果Bean 实现了ApplicationcontextAware 接口 Spring 将调用setApplicationContext() 接口方法，将应用上下文的引用传入。
+6)  如果Bean实现了BeanPostProcessor 接口Spring 将调用它们的postProcessBeforeInitialization 接口方法。
+7)  如果Bean 实现了InitializingBean 接口，Spring 将调用它们的afterPropertiesSet()接口方法． 类似地，如果Bean 使用init-method 声明了初始化方法，该方法也会被调用。
+8)  如果Bean 实现了BeanPostProcessor 接口， Spring 将调用它们的postPoressAfterInitilization方法．
+9)  此时此刻Bean 已经准备就绪．可以被应用程序使用了． 它们将一直驻留在应用上下文中．直到该应用上下文补销毁。
+10) 如果Bean实现了DisposableBean 接口，Spring 将调用它的destroy()接口方法。同样，如果Bean 使用destroy-method 声明了销毁方法，方法也会被调用。 
+
+### What is IOC or inversion of control? (answer)
+    
+As the name implies Inversion of control means now we have inverted the control of creating 
+the object from our own using new operator to container or framework. Now it’s the responsibility of container to create 
+an object as required. We maintain one XML file where we configure our components, services, all the classes and their 
+property. We just need to mention which service is needed by which component and container will create the object for us. 
+This concept is known as dependency injection because all object dependency (resources) is injected into it by the framework.
+
+```xml
+<bean id="createNewStock" class="springexample.stockMarket.CreateNewStockAccont"> 
+        <property name="newBid"/>
+</bean>
+```
+
+In this example, CreateNewStockAccont class contain getter and setter for newBid and container will 
+instantiate newBid and set the value automatically when it is used. This whole process is also called 
+wiring in Spring and by using annotation it can be done automatically by Spring, refereed as auto-wiring of bean in Spring.
+
+### Question 5: What are different modules in spring?
+
+1.      The Core container module
+2.      Application context module
+3.      AOP module (Aspect Oriented Programming)
+4.      JDBC abstraction and DAO module
+5.      O/R mapping integration module (Object/Relational)
+6.      Web module
+7.      MVC framework module
+
+### Question 6: What is the difference between singleton and prototype bean? @todo
+
+Ans: This is another popular spring interview questions and an important concept to understand. 
+Basically, a bean has scopes which define their existence on the application
+
+**Singleton:** means single bean definition to a single object instance per Spring IOC container.
+
+**Prototype:** means a single bean definition to any number of object instances.
+Whatever beans we defined in spring framework are singleton beans. There is an attribute in bean tag named ‘singleton’ 
+if specified true then bean becomes singleton and if set to false then the bean becomes a prototype bean. 
+By default, it is set to true. So, all the beans in spring framework are by default singleton beans.
+
+
+```xml
+<bean id="createNewStock"     class="springexample.stockMarket.CreateNewStockAccont" singleton=”false”> 
+        <property name="newBid"/> 
+</bean>
+```
+
+### Question 7: What type of transaction Management Spring support?
+
+Ans: This spring interview questions is little difficult as compared to previous questions just because 
+transaction management is a complex concept and not every developer familiar with it. 
+Transaction management is critical in any applications that will interact with the database. 
+The application has to ensure that the data is consistent and the integrity of the data is maintained.  
+Following two type of transaction management is supported by spring:
+
+1. Programmatic transaction management
+2. Declarative transaction management.
+
+### bean 的作用域
+
+在Spring中创建一个bean的时候，我们可以声明它的作用域。只需要在bean定义的时候通过’scope’属性定义即可。
+例如，当Spring需要产生每次一个新的bean实例时，应该声明bean的scope属性为prototype。
+如果每次你希望Spring返回一个实例，应该声明bean的scope属性为singleton。
+
+Spring框架支持如下五种不同的作用域：
+
+1. singleton：在Spring IOC容器中仅存在一个Bean实例，Bean以单实例的方式存在。
+2. prototype：一个bean可以定义多个实例。
+3. request：每次HTTP请求都会创建一个新的Bean。该作用域仅适用于WebApplicationContext环境。
+4. session：一个HTTP Session定义一个Bean。该作用域仅适用于WebApplicationContext环境.
+5. globalSession：同一个全局HTTP Session定义一个Bean。该作用域同样仅适用于WebApplicationContext环境.
+
+bean默认的scope属性是 ’singleton‘。
+
+Spring框架中的单例beans不是线程安全的
+
+bean标签有两个重要的属性(init-method 和 destroy-method)，你可以通过这两个属性定义自己的初始化方法和析构方法。
+
+Spring也有相应的注解：@PostConstruct 和 @PreDestroy
+
+### 解释自动装配的各种模式
+
+自动装配提供五种不同的模式供Spring容器用来自动装配beans之间的依赖注入:
+
+1. no：默认的方式是不进行自动装配，通过手工设置ref 属性来进行装配bean。
+2. byName：通过参数名自动装配，Spring容器查找beans的属性，这些beans在XML配置文件中被设置为byName。之后容器试图匹配、装配和该bean的属性具有相同名字的bean。
+3. byType：通过参数的数据类型自动自动装配，Spring容器查找beans的属性，这些beans在XML配置文件中被设置为byType。之后容器试图匹配和装配和该bean的属性类型一样的bean。如果有多个bean符合条件，则抛出错误。
+4. constructor：这个同byType类似，不过是应用于构造函数的参数。如果在BeanFactory中不是恰好有一个bean与构造函数参数相同类型，则抛出一个严重的错误。
+5. autodetect：如果有默认的构造方法，通过 construct的方式自动装配，否则使用 byType的方式自动装配。
+
+自动装配有如下局限性：
+
+1. 重写：你仍然需要使用 和< property>设置指明依赖，这意味着总要重写自动装配。
+2. 原生数据类型:你不能自动装配简单的属性，如原生类型、字符串和类。
+3. 模糊特性：自动装配总是没有自定义装配精确，因此，如果可能尽量使用自定义装配。
+
+### 常用注解
+
+**@Required 注解**
+
+@Required表明bean的属性必须在配置时设置，可以在bean的定义中明确指定也可通过自动装配设置。如果bean的属性未设置，则抛出BeanInitializationException异常。
+
+**@Autowired 注解**
+
+@Autowired 注解提供更加精细的控制，包括自动装配在何处完成以及如何完成。它可以像@Required一样自动装配setter方法、构造器、属性或者具有任意名称和/或多个参数的PN方法。
+
+**@Qualifier 注解**
+
+当有多个相同类型的bean而只有其中的一个需要自动装配时，将@Qualifier 注解和@Autowire 注解结合使用消除这种混淆，指明需要装配的bean。
+
+### AOP 概念
+
+54.连接点(Join point)
+
+连接点代表应用程序中插入AOP切面的地点。它实际上是Spring AOP框架在应用程序中执行动作的地点。
+
+55.通知(Advice)
+
+通知表示在方法执行前后需要执行的动作。实际上它是Spring AOP框架在程序执行过程中触发的一些代码。
+
+Spring切面可以执行一下五种类型的通知:
+
+before(前置通知)：在一个方法之前执行的通知。
+
+after(最终通知)：当某连接点退出的时候执行的通知（不论是正常返回还是异常退出）。
+
+after-returning(后置通知)：在某连接点正常完成后执行的通知。
+
+after-throwing(异常通知)：在方法抛出异常退出时执行的通知。
+
+around(环绕通知)：在方法调用前后触发的通知。
+
+56.切入点(Pointcut)
+
+切入点是一个或一组连接点，通知将在这些位置执行。可以通过表达式或匹配的方式指明切入点。
+
+### 为了降低Java开发的复杂性， Spring采取了以下4 种关键策略
+
+1. 基于POJO的轻量级和最小侵入性编程，
+2. 通过依赖注入和面向接口实现松耦合，
+3. 基于切面和惯例进行声明式编程，
+4. 通过切面和模板减少样板式代码。
+
+### 依赖注入有哪些方式
+
+1. 接口注入（interface injection） 接口注入指的就是在接口中定义要注入的信息，并通过接口完成注入。
+2. Set注入（setterinjection）Set注入指的就是在接受注入的类中定义一个Set方法，并在参数中定义需要注入的元素。
+3. 构造注入（constructor injection）构造注入指的就是在接受注入的类中定义一个构造方法，并在参数中定义需要注入的元素 
+
+### Spring应用上下文的有哪些
+
+1. ClassPathXmlApplicationContext——从类路径下的XML配置文件中加载上下文定义，把应用上下文定义文件当作类资源。
+2. FileSystemXmlApplicationcontext该取文件系统统下XML配置文件并加载上下文定义。
+3. XmlWebApplicationContext——读取Web应用下的XML 配置文件并装载上下文定义。
+
+使用FileSystemXmlapplicationcontext和使用ClassPathXmlApplicationContext的区别在于:
+FileSystemXmlapplicationcontext在指定的文件系统路径下查找文件，
+
+
 ## 参考资料
 
 [Spring Interview Questions](http://ifeve.com/java-memory-model-0/)

@@ -11,6 +11,30 @@ keywords: kafka
 >>>>>>> 92b30acbd6e62654a0c926be44ff254aed9e52e4
 ---
 
+## 流程
+
+在看懂以后, 可以直接看流程图了
+
+![](/images/posts/kafka/socker_server_handler.png)
+
+从图中可以看出, socket server 是最底层的网络连接, 它接受的请求全部放入 RequestChannel 中, 
+RequestChannel 有一个 requestQueue 和 responseQueue[#OfProcess]
+
+KafkaServer 是名义上的服务器, 它内部拥有 KafkaRequestHandlerPool, pool 中拥有 RequestHandler,
+RequestHandler 的构造函数包括 KafkaApis 和 requestChannel, 他所做的事情就是从 RequestChannel 中拿到
+请求, 放到 KafkaApis 中执行, 这样请求就得到了处理
+
+在 KafkaApis 中, Request 处理完毕后返回 response, 与 requestQueue 不同, response 的队列是个数组, 和 processor
+一一对应。因为 NIO 的 channel 是和 processor 一一对应的, 所以一个消息处理完毕后要唤醒对应的 processor, 至于 
+requestChannel 为什么是一个, 那是因为消息来了以后想怎么处理就怎么处理, 和 processor 没关系了, 只有接受和发送才和
+processor 有关。
+
+requestChannel onResponse 监听器对应的处理逻辑就是 wakeup process
+
+```scala
+requestChannel.addResponseListener((id:Int) => processors(id).wakeup())
+```
+
 ## Socket Server 
 
 ![](/images/posts/kafka/kafka_broker_internals.png)
@@ -316,7 +340,7 @@ class KafkaRequestHandlerPool(val brokerId: Int, val requestChannel: RequestChan
 class KafkaRequestHandler(id: Int, brokerId: Int, val requestChannel: RequestChannel, apis: KafkaApis) {}
 ```
 
-![](/images/posts/kafka/socker_server_handler.png)
+
 
 
 Ref:

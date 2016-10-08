@@ -5,6 +5,55 @@ categories: [kafka]
 keywords: kafka
 ---
 
+## Consumer 逻辑
+
+结合上一篇 post 的内容
+
+Consumer 会先创建 ConsumerConnector, 它代表一个消费者进程, 包含两个方法, 分别是 commitOffset 和 createStream
+
+createStream 是让 developer 调用创建流的, commitOffset 一般不需要 dev 管理, connector
+
+ConsumerConnector 的实现类型是 ZookeeperConsumerConnector, 因为 client 需要频繁连接 zookeeper 并发送消息。consumerConnector 
+创建时, 会启动 ZookeeperClient, ConsumerFetcherManager, 其中 ConsumerFetcherManager 就是用来取数据的, 当然 ConsumerConnector
+还要处理消费者到来/离开, partition增减等事情。这个先不说
+
+ConsumerFetcherManager 管理一组 FetcherThread, 对于用户感兴趣的 topic, 都有会 topicPartition 到 fetcherThread 的映射, 
+在 Producer 中, 每个 broker 一个 channel, 但是 consumer 每个 partition 一个 channel. 除此之外, ConsumerFetcherManager
+还维护了一个 map, 它是 topicPartition 到 Partition 数据的映射, 数据的类型是 PartitionTopicInfo, 除了数据意外, 它还保存着
+consumedOffset 以及 fetchedOffset 和 clientId, kafkaStream 中的数据就是从 PartitionTopicInfo 中拉取的
+
+ConsumerFetcherManager 除了获取数据外, 还维护了一个 LeaderFindThread, 这个线程的作用就是不停的和 zookeeper 通信, 获取
+当前感兴趣的 topic partition primary 节点所在的位置, 当发生变化时, 更新自己的 topic, partition 到 fetcherThread 的映射。
+值得注意的是, Replica partition 只负责 HA 不负责 LB, 所以 Replica 也有自己的 FetcherManager 和 FetcherThread
+
+FetcherManager 中的 FindLeadThread 用于处理 partition 的增加减少, 对于 Consumer 的加入离开, 由 ConsumerConnector 来处理,
+因为消费者加入/退出时,消费组的成员会发生变化,而消费组中的所有存活消费者负责消费可用的partitions.
+
+可用的partitions或者消费组中的消费者成员一旦发生变化,都要重新分配partition给存活的消费者
+
+- PartitionOwnership: Partition的所有者(ownership)的删除和重建
+- AssignmentContext: 分配信息上下文
+- PartitionAssignor: 为 Partition 分配 Consumer 的算法
+- PartitionAssignment: Partition 分配之后的上下文
+- PartitionTopicInfo: Partition 的最终信息
+- Fetcher: 完成了 rebalance, 消费者就可以重新开始抓取数据
+
+关于 consumerConnector 是 consumer 组还是 consumer 个体, 可以参考它这个成员变量
+
+```scala
+private val topicThreadIdAndQueues = new Pool[(String, ConsumerThreadId), BlockingQueue[FetchedDataChunk]]
+```
+
+Key 是 Topic, ConsumerThreadId 是 consumerId 和 threadId, 所以说, consumerConnector 应该是 consumer 组的概念,
+当有多个 consumer 进程时, 一个 consumer 进程离开了, 其他的 consumerConnector 应该都会发生变化, 那么一个 consumer 是怎么
+知晓其他 consumer 的存在的呢? 这是因为每个 consumer 都会监听 zookeeper 中的 consumer/consumerGroup/owners 信息吧
+
+```scala
+class ZKRebalancerListener(val group: String, val consumerIdString: String,
+                             val kafkaMessageAndMetadataStreams: mutable.Map[String,List[KafkaStream[_,_]]])
+    extends IZkChildListener
+```
+
 ## Consumer(2) Fetcher
 
 获取TopicMetadata,使用生产者模式发送一个需要响应结果的TopicMetadataRequest.

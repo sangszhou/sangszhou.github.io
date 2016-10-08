@@ -11,7 +11,7 @@ keywords: kafka
 但是Consumer需要和ZK频繁交互，而利用ZK Client API对ZK频繁写入是一个低效的操作，并且从水平扩展性上来讲也存在问题。所以ZK抖一抖，
 集群吞吐量就跟着一起抖，严重的时候简直抖的停不下来。 当然某些非JVM端的API压根就不把offset存在ZK中，如基于Go的sarama，
 直接自己维护了一个变量在内存中记录，总之就是问题多多了。所以非JVM的客户端，大家悠着点用。
-****
+
 0.8.2 Kafka引入了一个叫native offset storage的玩意儿，将offset管理从ZK移出，并且可以做到水平扩展。看到这个消息大家基本都泪流满面了。
 
 实现原理其实也很自然，利用了Kafka自己的compacted topic，以consumer group，topic与Partition的组合作为key。
