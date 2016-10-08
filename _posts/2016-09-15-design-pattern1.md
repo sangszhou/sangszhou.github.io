@@ -29,7 +29,12 @@ keywords: design pattern
 
 实现关系用一条带空心箭头的虚线表示
 
-**聚合关系(aggregation) ???**
+**聚合与组合关系**
+
+比如A类中包含B类的一个引用b，当A类的一个对象消亡时，b这个引用所指向的对象也同时消亡（没有任何一个引用指向它，成了垃圾对象），这种情况叫做组合，
+反之b所指向的对象还会有另外的引用指向它，这种情况叫聚合。所以聚合的关系比组合的关系更弱一些
+
+**聚合关系(aggregation)**
 
 聚合关系用一条带空心菱形箭头的直线表示，如下图表示A聚合到B上，或者说B由A组成；
 
@@ -140,7 +145,7 @@ public class Singleton {
 
 **策略模式:** 我要画圆，要实心圆，我可以用solidPen来配置，画虚线圆可以用dashedPen来配置。这是strategy模式。 
 
-策略模式用于封装系列的算法，这些算法通常被封装在一个被称为Context的类中，客户端程序可以自由选择其中一种算法，
+策略模式用于封装一系列的算法，这些算法通常被封装在一个被称为 Context 的类中，客户端程序可以自由选择其中一种算法，
 或让Context为客户端选择一种最佳算法——使用策略模式的优势是为了支持算法的自由切换。
 
 
@@ -149,12 +154,14 @@ public class Singleton {
 
 画圆方法中，策略只是考虑算法的替换，而桥接考虑的则是不同平台下需要调用不同的工具，接口只是定义一个方法，而具体实现则由具体实现类完成。 
 
-由于实际的需要，某个类具有两个以上的维度变化，如果只是使用继承将无法实现这种需要，或者使得设计变得相当臃肿。
+某个类具有两个以上的维度变化，如果只是使用继承将无法实现这种需要，或者使得设计变得相当臃肿。
+
 而桥接模式的做法是把变化部分抽象出来，使变化部分与主类分离开来，从而将多个的变化彻底分离。
-最后提供一个管理类来组合不同维度上的变化，通过这种组合来满足业务的需要。
+
+最后提供一个管理类来组合不同维度上的变化，通过这种组合来满足业务的需要
 
 
-**桥接模式:** 不仅 Implementor 具有变化（ConcreteImplementor），而且Abstraction也可以发生变化（RefinedAbstraction），
+**桥接模式:** 不仅 Implementor 具有变化（ConcreteImplementor），而且 Abstraction 也可以发生变化（RefinedAbstraction），
 而且两者的变化是完全独立的，RefinedAbstraction与ConcreateImplementor之间松散耦合，它们仅仅
 通过Abstraction与Implementor之间的关系联系起来。强调Implementor接口仅提供基本操作，而Abstraction则基于这些基
 本操作定义更高层次的操作
@@ -221,7 +228,7 @@ prod->use();
 
 **实例**
 
-![](/images/posts/java/loger.jpg)
+<!--![](/images/posts/java/loger.jpg)-->
 
 **优缺点**
 
@@ -276,7 +283,11 @@ pb2->eat();
 
 ## 责任链模式
 
-解决判断的一个很好的办法就是责任链模式, 
+责任链模式是一种对象的行为模式。在责任链模式里，很多对象由每一个对象对其下家的引用而连接起来形成一条链。请求在这个链上传递，
+直到链上的某一个对象决定处理此请求。发出这个请求的客户端并不知道链上的哪一个对象最终处理这个请求，这使得系统可以在不影响客户端的情
+况下动态地重新组织和分配责任, 包括增加节点, 减少节点或者改变链的顺序。
+
+解决**判断问题**的一个很好的办法就是责任链模式, 
 另外一个对于根据数据的内容, 而不是业务逻辑来做判断时, 责任链模式特别有效
 
 ```java
@@ -304,6 +315,8 @@ final class ApplicationFilterChain implements FilterChain {
 ![](/images/posts/java/StatePattern.jpg)
 
 **TCP 使用状态模式**
+
+状态模式属于行为模式, 不同的状态下, 相同的动作名会有不同的行为方式。
 
 ![](/images/posts/java/State_eg.jpg)
 
@@ -463,8 +476,9 @@ public class PrintVisitor implements IVisitor {
 }  
 ```
 
-@todo
-Velocity 好像也是 visitor 模式吧, 到时候总结
+
+SOA 对 Velocity 的修改, 是一种 visitor 模式, 我所做的事情就是修改 visit(literalReference) 动作, 每次遇到 LiteralReference 就把该变量
+存到一个容器里。后面会遍历容器, 把变量替换为值
 
 ## 代理模式
 

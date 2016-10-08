@@ -1,8 +1,14 @@
 ---
 layout: post
+<<<<<<< HEAD
 title: Kafka networking
 categories: [kafka]
 keywords: kafka, java, nio
+=======
+title: kafka networking
+categories: [kafka]
+keywords: kafka
+>>>>>>> 92b30acbd6e62654a0c926be44ff254aed9e52e4
 ---
 
 ## Socket Server 
@@ -64,7 +70,9 @@ def run() {
           while (iter.hasNext && isRunning) {
               val key = iter.next
               iter.remove()
-              if (key.isAcceptable) accept(key, processors(currentProcessor))
+              if (key.isAcceptable) 
+                accept(key, processors(currentProcessor))
+              
               // round robin to the next processor thread
               currentProcessor = (currentProcessor + 1) % processors.length }}}
 

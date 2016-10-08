@@ -30,6 +30,13 @@ Arrays.asList( "a", "b", "d" ).sort( ( e1, e2 ) -> {
 } );
 ```
 
+1.抽象类不可以多重继承，接口可以（无论是多重类型继承还是多重行为继承）；
+
+2.抽象类和接口所反映出的设计理念不同。其实抽象类表示的是"is-a"关系，接口表示的是"like-a"关系；
+
+3.接口中定义的变量默认是 public static final 型，且必须给其初值，所以实现类中不能改变其值；抽象类中的变量默认是 friendly 型，
+  其值可以在子类中重新定义，也可以重新赋值。 
+
 **Java 的 Lambda 表示式是把 e -> println(e) 改成 Function 对象, 而 java 可能是改成 functional interface 加上
 Function 对象**
 
@@ -63,6 +70,8 @@ public interface FunctionalDefaultMethods {
     }       
 }
 ```
+
+如果多继承产生了二义性, 那么编译器会报错的
 
 ## Interface's default and static method
 

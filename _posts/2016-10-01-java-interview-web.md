@@ -1,3 +1,11 @@
+---
+layout: post
+title: interview web
+categories: [interview]
+keywords: web, interview
+---
+
+
 ### How do you setup LDAP Authentication using Spring Security? 
 
 This is a very popular Spring Security interview question as Spring provides out of the box support to 
@@ -120,3 +128,37 @@ http://javarevisited.blogspot.com/2012/06/jdbc-database-connection-pool-in-sprin
 
 http://javarevisited.blogspot.com/2015/06/difference-between-dependency-injection.html
 
+### What is REST and RESTful web services ?
+
+this is the first REST interview question on most of interviews as not everybody familiar with REST and also
+start discussion based on candidates response. Anyway REST stands for REpresentational State Transfer (REST) its a 
+relatively new concept of writing web services which enforces a stateless client server design where web services are 
+treated as resource and can be accessed and identified by there URL unlike SOAP web services which were defined by WSDL.
+
+Web services written by apply REST Architectural concept are called RESTful web services which focus on System resources 
+and how state of Resource should be transferred over http protocol to a different clients written in different languages. 
+In RESTful web services http methods like GET, PUT, POST and DELETE can can be used to perform CRUD operations.
+
+### What is differences between RESTful web services and SOAP web services
+
+Though both RESTful web series and SOAP web service can operate cross platform they are architecturally different to each other, here is some of differences between REST and SOAP:
+
+1) REST is more simple and easy to use than SOAP
+2) REST uses HTTP protocol for producing or consuming web services while SOAP uses XML.
+3) REST is lightweight as compared to SOAP and preferred choice in mobile devices and PDA's.
+4) REST supports different format like text, JSON and XML while SOAP only support XML.
+5) REST web services call can be cached to improve performance.
+
+### What is Resource in REST framework
+
+it represent a "resource" in REST architecture. on RESTLET API it has life cycle methods like init(), handle() 
+and release() and contains a Context, Request and Response corresponding to specific target resource. This is now 
+deprecated over ServerResource class and you should use that. see Restlet documentation for more details.
+
+### What happens if RestFull resources are accessed by multiple clients ? do you need to make it thread-safe?
+
+Since a new Resource instance is created for every incoming Request there is no need to make it thread-safe or 
+add synchronization. multiple client can safely access RestFull resources concurrently.
+
+That’s all on REST interview questions , I will add couple of  more REST Interview questions whenever I got them 
+from my friend circle.

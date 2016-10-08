@@ -601,4 +601,8 @@ linearisation of B
     B (not considered as B occurs before)
 ```
 
+right most, deep most 的意义, 应该是这样, 底层的依赖是 B, deep most 所以要把 A 放到 B 的前面
 
+然后看 C, C 应该放到继承链中的最上层, 但它与实际的继承关系反过来了, 所以应该下放到最底层
+
+D, 它本该在最上层, 但是 A 是它的子类, 所以下放, 放到 A 的下面, 最终的结果还是 ADBC, 与原始的结论一样
