@@ -6,6 +6,41 @@ categories: [nio]
 keywords: java, netty, nio
 ---
 
+### Fast Track
+
+先用 HttpConnection 和 Request 绑定, 使得一个 HttpConnection 每次只能发一个消息
+
+```scala
+HttpConnection
+    outcome: Promise[T]
+    eventHandler: EventHandler = new EventHandler(this)
+    def sendQuery(request)
+        eventHandler.write(request)
+    def onReceive(Response)
+        outcome.complete(response)
+
+EventHandler extends ChannelInBoundStream
+    bootstrap = new Bootstrap().channelInit(HttpDecoder, this)
+    def read0(msg):
+        onReceive(msg)
+    def write(msg): // 这个容易忘
+        channel.write  
+```
+
+这样就完成了 HttpConnection 和 Request/Response 的绑定关系, 接下来要保证的就是, HttpConnectionPool
+中的一个 Connection 在完成 RequestResponse 后才能被重用, 这里使用了 scala 的语法来简化代码编写
+
+```scala
+ConnectionPool[T <: HttpConnection]
+    def take: Future[T]
+    def giveBack(T): ConnectionPool
+    def use(f: T => Future[B]): Future[B]
+        take.map(conn => {
+            f(conn).map(result => giveBack(T)
+        }
+```
+
+也就是说, 只有当 result 都已经拿到以后, 才会把 request 返回给 connection pool
 
 ### 背景
 
