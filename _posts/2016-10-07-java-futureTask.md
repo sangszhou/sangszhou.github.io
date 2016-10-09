@@ -7,7 +7,6 @@ keywords: java
 
 ![](/images/posts/javaconcurrent/futuretask.png)
 
-
 ### Example
 
 ```java
@@ -238,3 +237,67 @@ public void execute(Runnable command) {
         }
     }
 ```
+
+### ThreadPool 的继承关系
+
+Executor <- ExecutorService <- AbstractExecutorService <- ThreadPoolExecutor
+
+其中 Executor 只能有 execute 方法
+
+ExecutorService 基本上该有的方法都有了
+
+
+```java
+public static ExecutorService newCachedThreadPool() {
+        return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+                                      60L, TimeUnit.SECONDS,
+                                      new SynchronousQueue<Runnable>());
+
+public static ExecutorService newFixedThreadPool(int nThreads, ThreadFactory threadFactory) {
+        return new ThreadPoolExecutor(nThreads, nThreads,
+                                      0L, TimeUnit.MILLISECONDS,
+                                      new LinkedBlockingQueue<Runnable>(),
+                                      threadFactory);}
+
+public ThreadPoolExecutor(int corePoolSize,
+                              int maximumPoolSize,
+                              long keepAliveTime,
+                              TimeUnit unit,
+                              BlockingQueue<Runnable> workQueue,
+                              ThreadFactory threadFactory) {
+        this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
+             threadFactory, defaultHandler);
+    }
+```
+
+### BlockingQueue 的实现
+
+LinkedBlockingQueue, ArrayBlockingQueue, PriorityBlockingQueue, DelayQueue, SynchronousBlockingQueue
+
+ArrayBlockingQueue 和 DelayQueue 的源码都仔细的读过, LinkedBlockingQueue 应该也不成问题
+
+PriorityBlockingQueue 的实现则复杂了些, 它没有使用已有的数据结构, 而是手动的写了 sink, siftUp 等函数
+
+**SynchronousBlockingQueue**
+
+Q: What is the difference? When I should use SynchronousQueue against LinkedBlockingQueue with capacity 1?
+
+A:
+
+the SynchronousQueue is more of a handoff, whereas the LinkedBlockingQueue just allows a single element. 
+The difference being that the put() call to a SynchronousQueue will not return until there is a 
+corresponding take() call, but with a LinkedBlockingQueue of size 1, the put() call (to an empty queue) will return immediately.
+
+I can't say that i have ever used the SynchronousQueue directly myself, but it is the default BlockingQueue used for 
+the Executors.newCachedThreadPool() methods. It's essentially the BlockingQueue implementation for when you don't 
+really want a queue (you don't want to maintain any pending data).
+
+Sync.Q. requires to have waiter(s) for offer to succeed. LBQ will keep the item and offer will finish immediately even if there is no waiter.
+
+SyncQ is useful for tasks handoff. Imagine you have a list w/ pending task and 3 threads available waiting on the queue, try offer() with 1/4 of the list if not accepted the thread can run the task on its own. [the last 1/4 should be handled by the current thread, if you wonder why 1/4 and not 1/3]
+
+Think of trying to hand the task to a worker, if none is available you have an option to execute the task on your own (or throw an exception). On the contrary w/ LBQ, leaving the task in the queue doesn't guarantee any execution.
+
+Note: the case w/ consumers and publishers is the same, i.e. the publisher may block and wait for consumers but after offer or poll returns, it ensures the task/element is to be handled.
+
+没怎么看明白

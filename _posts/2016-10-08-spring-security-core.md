@@ -63,20 +63,26 @@ ExceptionTranslationFilter is a Spring Security filter that has responsibility f
 exceptions that are thrown. Such exceptions will generally be thrown by an AbstractSecurityInterceptor, which is 
 the main provider of authorization services.
 
-the ExceptionTranslationFilter offers this service, with specific responsibility for either returning error code 403 (if the principal has been authenticated and therefore simply lacks sufficient access - as per step seven above), or launching an AuthenticationEntryPoint (if the principal has not been authenticated and therefore we need to go commence step three).
+the ExceptionTranslationFilter offers this service, with specific responsibility for either returning error code 403 
+(if the principal has been authenticated and therefore simply **lacks sufficient access** - as per step seven above), 
+or launching an **AuthenticationEntryPoint** (if the principal has not been authenticated and therefore we 
+need to go commence step three).
 
 **AuthenticationEntryPoint**
 
-As you can imagine, each web application will have a default authentication strategy (well, this can be configured like nearly everything else in Spring Security, but let’s keep it simple for now). Each major authentication system will have its own AuthenticationEntryPoint implementation, which typically performs one of the actions described in step 3.
+As you can imagine, each web application will have a default authentication strategy (well, this can 
+be configured like nearly everything else in Spring Security, but let’s keep it simple for now). 
+Each major authentication system will have its own AuthenticationEntryPoint implementation, 
+which typically performs one of the actions described in step 3.
 
 **Storing the SecurityContext between requests**
 
 Depending on the type of application, there may need to be a strategy in place to store the 
 security context between user operations. In a typical web application, a user logs in once and is 
 subsequently identified by their session Id. The server caches the principal information for the 
-duration session. In Spring Security, the responsibility for storing the SecurityContext between 
-requests falls to the SecurityContextPersistenceFilter, which by default stores the context as an 
-HttpSession attribute between HTTP requests. It restores the context to the SecurityContextHolder 
+duration session. In Spring Security, **the responsibility for storing the SecurityContext between 
+requests falls to the SecurityContextPersistenceFilter**, which by default stores the context as an 
+**HttpSession** attribute between HTTP requests. It restores the context to the SecurityContextHolder 
 for each request and, crucially, clears the SecurityContextHolder when the request completes. 
 You shouldn’t interact directly with the HttpSession for security purposes. There is simply no 
 justification for doing so - always use the SecurityContextHolder instead.
@@ -84,13 +90,14 @@ justification for doing so - always use the SecurityContextHolder instead.
 Many other types of application (for example, a stateless RESTful web service) do not use HTTP 
 sessions and will re-authenticate on every request. However, it is still important that the 
 SecurityContextPersistenceFilter is included in the chain to make sure that the SecurityContextHolder 
-is cleared after each request.
+is **cleared after each request**.
 
 ### Access-Control (Authorization) in Spring Security
 
-The main interface responsible for making access-control decisions in Spring Security is the AccessDecisionManager. 
+The main interface responsible for making access-control decisions in Spring Security is the **AccessDecisionManager**. 
 It has a decide method which takes an Authentication object representing the principal requesting access, a "secure object" 
-(see below) and a list of security metadata attributes which apply for the object (such as a list of roles which are required for access to be granted).
+(see below) and a list of security metadata attributes which apply for the object (such as a list of roles 
+which are required for access to be granted).
 
 **Secure Objects and the AbstractSecurityInterceptor**
 
@@ -100,12 +107,12 @@ the SecurityContextHolder will contain a valid Authentication if the principal h
 
 AbstractSecurityInterceptor provides a consistent workflow for handling secure object requests, typically:
 
-1. Look up the "configuration attributes" associated with the present request
+1. Look up the **"configuration attributes"** associated with the present request
 2. Submitting the secure object, current Authentication and configuration attributes to the 
    AccessDecisionManager for an authorization decision
 3. Optionally change the Authentication under which the invocation takes place
 4. Allow the secure object invocation to proceed (assuming access was granted)
-5. Call the AfterInvocationManager if configured, once the invocation has returned. 
+5. Call the **AfterInvocationManager** if configured, once the invocation has returned. 
    If the invocation raised an exception, the AfterInvocationManager will not be invoked.
 
 ![](/images/posts/spring/security/security-interception.png)
@@ -114,8 +121,8 @@ AbstractSecurityInterceptor provides a consistent workflow for handling secure o
 
 A "configuration attribute" can be thought of as a String that has special meaning to the classes used by AbstractSecurityInterceptor.
 
-They are represented by the interface ConfigAttribute within the framework.
-They may be simple role names or have more complex meaning, depending on the 
+They are represented by the **interface ConfigAttribute** within the framework.
+They may be simple **role names** or have more complex meaning, depending on the 
 how sophisticated the AccessDecisionManager implementation is.
 
 The AbstractSecurityInterceptor is configured with a SecurityMetadataSource which it uses to look 
@@ -125,6 +132,7 @@ Configuration attributes will be entered as annotations on secured methods or as
 For example, when we saw something like <intercept-url pattern='/secure/**' access='ROLE_A,ROLE_B'/> in the namespace 
 introduction, this is saying that the configuration attributes ROLE_A and ROLE_B apply to web requests matching the given pattern.
 
+Secured object 一般是 method 和 requestMapping pattern
 
 ### Authorization Architecture
 
@@ -175,4 +183,73 @@ Spring Security provides a convenient hook that has several concrete implementat
 
 ![](/images/posts/spring/security/after-invocation.png)
 
+## Authentication
+
+### Oauth2AuthenticationProcessingFilter
+
+A pre-authentication filter for OAuth2 protected resources. Extracts an OAuth2 token from the incoming request and
+uses it to populate the Spring Security context with an OAuth2Authentication.
+
+这里的 AuthenticationManager 是 Oauth2AuthenticationManager
+
+```java
+OAuth2AuthenticationManager:
+    ResourceServerTokenServices tokenServices;
+    ClientDetailsService clientDetailsService;
+    String resourceId;
+```
+
+ResourceServerTokenService 主要有两个实现, 一个是 default 实现, 通过持久层(jdbc, redis, jwt, inMemory) 获取数据, 另一个是
+remote 获取数据, 它借助于 RestOperation 验证 token 是否有效
+
+![](/images/posts/spring/security/ResourceServerTokenService.png)
+
+### BasicAuthenticationFilter
+
+Processes a HTTP request's BASIC authorization headers, putting the result into the SecurityContextHolder.
+
+In summary, this filter is responsible for processing any request that has a HTTP request header of  Authorization
+with an authentication scheme of  Basic  and a Base64-encoded  username:password token. For  example, 
+to authenticate user "Aladdin" with password "open sesame" the following header would be presented:
+`Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==`
+
+If authentication fails and BasicAuthenticationEntryPoint, which will prompt the 
+user to authenticate again via BASIC authentication.
+
+Note that if a RememberMeServices is set, this filter will automatically 
+send back remember-me details to the client. Therefore, subsequent requests will not need to
+present a BASIC authentication header as they will be authenticated using the remember-me mechanism.
+
+### Oauth2 grant token
+
+token 就简单了，验证 scope 是否合法，需要注意的是，authentication 在授予 token 时不需要做了，
+因为这些 endpoint 已经被保护好了的，有空测试一下，没有 username password 是否就不需要 token 了
+
+验证的过程就一部，查看 clientId 是否合法或者 code 是否合法，接下来就 token grant 了
+
+![](/images/posts/spring/security/TokenGranter.png)
+
+```java
+public OAuth2AccessToken grant(String grantType, TokenRequest tokenRequest) {
+   String clientId = tokenRequest.getClientId();
+   ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+   validateGrantType(grantType, client);
+
+   return getAccessToken(client, tokenRequest);
+}
+```
+
+从 grant 流程来看，认证阶段发生在 client grantType test 之前。Granter 之类有5种，对应了分配 token 的四种方式，
+最常用的 token grant 还是 password 和 clientCredential
+
+当 grantType 是 RefreshToken 时，利用 request 中的 refreshToken 去刷新数据库的 accessToken 并返回
+在什么情况下，使用 password 会返回 refreshToken
+
+AuthorizationCodeTokenGranter 是在 code 已经设置好的情况下对 code 进行验证，code 验证完毕后从持久层中删去
+
+RemoteTokenServices 的 loadAuthentication 方法是把 token 的认证递交给 remote authentication url 来处理，
+根据处理的返回结果得到是否是合法 token, url 好像是 /check_token
+
+认证过程就一行， authenticationManager.authenticate, 在 oauth2 中 authenticaitonManager 多了一个子类，
+oatuh2AuthenticationManager, 它会根据 token 拿到 client 的相关信息，在验证中，还会验证 resourceId 是不是正确，不正确返回异常
 

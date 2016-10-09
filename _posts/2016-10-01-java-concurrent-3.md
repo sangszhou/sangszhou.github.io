@@ -683,6 +683,16 @@ Causes this thread to begin execution; the Java Virtual Machine calls the run me
 The result is that two threads are running concurrently: the current thread (which returns from the call to the
 start method) and the other thread (which executes its run method).
 
+The start method makes sure the code runs in a new thread context. If you called run directly, 
+then it would be like an ordinary method call and it would run in the context of the current thread 
+instead of the new one. The start method contains the special code to trigger the new thread; run 
+obviously doesn't have that ability because you didn't include it when you wrote the run method.
+
+It is never legal to start a thread more than once. In particular, a thread may not be restarted 
+once it has completed execution. `IllegalThreadStateException` - if the thread was already started
+
+The reason is once run() method is executed by Thread, it goes into dead state.
+
 ### 12) Java中你怎样唤醒一个阻塞的线程？
     
 这是个关于线程和阻塞的棘手的问题，它有很多解决方法。如果线程遇到了 IO 阻塞，我并且不认为有一种方法可以中止线程。
