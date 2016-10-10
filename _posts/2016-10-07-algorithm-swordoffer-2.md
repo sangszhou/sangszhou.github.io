@@ -1,6 +1,6 @@
 ---
 layout: post
-title: algorithm
+title: algorithm 2
 categories: [algorithm]
 keywords: algorithm
 ---
