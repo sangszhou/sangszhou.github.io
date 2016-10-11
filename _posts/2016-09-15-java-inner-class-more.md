@@ -45,9 +45,10 @@ public class test1 {
 虽然成员内部类可以无条件地访问外部类的成员，而外部类想访问成员内部类的成员却不是这么随心所欲了
 在外部类中如果要访问成员内部类的成员，必须先创建一个成员内部类的对象，再通过指向这个对象的引用来访问:
 
-内部类可以拥有private访问权限、protected访问权限、public访问权限及包访问权限。
+内部类可以拥有 private 访问权限、protected 访问权限、public 访问权限及包访问权限。
 
-比如上面的例子，如果成员内部类Inner用private修饰，则只能在外部类的内部访问，如果用public修饰，则任何地方都能访问；如果用protected修饰，则只能在同一个包下或者继承外部类的情况下访问；如果是默认访问权限，则只能在同一个包下访问。
+比如上面的例子，如果成员内部类Inner用private修饰，则只能在外部类的内部访问，如果用public修饰，则任何地方都能访问；
+如果用protected修饰，则只能在同一个包下或者继承外部类的情况下访问；如果是默认访问权限，则只能在同一个包下访问。
 
 我个人是这么理解的，由于成员内部类看起来像是外部类的一个成员，所以可以像类的成员一样拥有多种权限修饰。
 
@@ -55,7 +56,7 @@ public class test1 {
 
 ### 局部内部类
 
-局部内部类是定义在一个方法或者一个作用域里面的类，它和成员内部类的区别在于局部内部类的访问仅限于方法内或者该作用域内。
+局部内部类是定义在一个方法或者一个作用域里面的类，它和成员内部类的区别在于局部内部类的访问仅限于方法内或者该作用域内
 
 ```java
 public class Parcel5 {
@@ -113,6 +114,8 @@ public class test1 {
 ```
 
 private 的静态内部类, 外部类也可以访问的到
+
+可以被继承
 
 ### 匿名内部类
 
@@ -283,6 +286,9 @@ Java从1.4版本引入NIO，提升了I/O性能。Java的I/O操作类大概分为
 OutputStream out = new BufferedOutputStream(new ObjectOutputStream("fileName"));
 ```
 
+BufferedOutputStream 内部有一个 buf[] 和 outputStream, 它继承了 FilterOutStream, 是 OutputStream 的孙子
+
+
 2、流最终写到的地址必须要指定，要么写到磁盘，要么写到网络
 
 基于字符的I/O操作接口
@@ -294,11 +300,11 @@ int read(char chuff[], int off, int len);
 
 ### 字节与字符的转化接口
 
-InputStreamReader类是字节到字符的转化桥梁，转化过程中需要指定编码字符集，否则采用默认字符集。OutputStreamWriter类似
+InputStreamReader 类是字节到字符的转化桥梁，转化过程中需要指定编码字符集，否则采用默认字符集。OutputStreamWriter类似
 
 ```java
 try{
-  StringBuffer str = new StringBuffer();
+  StringBuffer str = new StringBuffer(); // thread-safe
   char[] buf = new char[1024];
   FileReader f = new FileReader("file");
   while(f.read(buf)>0){
