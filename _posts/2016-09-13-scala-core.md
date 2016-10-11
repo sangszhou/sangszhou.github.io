@@ -487,3 +487,16 @@ val result: (List[Int], List[Int]) = List(-1, 2, 3).foldLeft((List[Int](), List[
 
 println(result)
 ```
+
+### Actor 的 mailbox 是不是 blockingQueue
+
+**MessageQueue**
+
+A MessageQueue is one of the core components in forming an Akka Mailbox.
+The MessageQueue is where the normal messages that are sent to Actors will be enqueued (and subsequently dequeued)
+It needs to at least support N producers and 1 consumer thread-safely.
+
+Lock-free MPSC linked queue implementation based on Dmitriy Vyukov's 
+non-intrusive [MPSC queue](http://www.1024cores.net/home/lock-free-algorithms/queues/non-intrusive-mpsc-node-based-queue)
+
+

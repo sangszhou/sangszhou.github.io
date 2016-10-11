@@ -1,6 +1,6 @@
 ---
 layout: post
-title: algorithm sword upon offer
+title: algorithm 1
 categories: [algorithm]
 keywords: algorithm
 ---
