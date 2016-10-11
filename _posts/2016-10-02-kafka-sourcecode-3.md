@@ -5,7 +5,7 @@ categories: [kafka]
 keywords: kafka
 ---
 
-## Consumer 逻辑
+## Fast Path
 
 结合上一篇 post 的内容
 
@@ -19,7 +19,7 @@ ConsumerConnector 的实现类型是 ZookeeperConsumerConnector, 因为 client �
 
 ConsumerFetcherManager 管理一组 FetcherThread, 对于用户感兴趣的 topic, 都有会 topicPartition 到 fetcherThread 的映射, 
 在 Producer 中, 每个 broker 一个 channel, 但是 consumer 每个 partition 一个 channel. 除此之外, ConsumerFetcherManager
-还维护了一个 map, 它是 topicPartition 到 Partition 数据的映射, 数据的类型是 PartitionTopicInfo, 除了数据意外, 它还保存着
+还维护了一个 map, 它是 topicPartition 到 **Partition 数据**的映射, 数据的类型是 PartitionTopicInfo, 除了数据意外, 它还保存着
 consumedOffset 以及 fetchedOffset 和 clientId, kafkaStream 中的数据就是从 PartitionTopicInfo 中拉取的
 
 ConsumerFetcherManager 除了获取数据外, 还维护了一个 LeaderFindThread, 这个线程的作用就是不停的和 zookeeper 通信, 获取
@@ -239,5 +239,7 @@ Partition的offset的源头是topicRegistry的fetchOffsets(即从offsetChannel�
 
 ![](http://img.blog.csdn.net/20160129084955562)
 
-### FetchRequest & PartitionData
+### KafkaApis 的处理逻辑
+
+
 
