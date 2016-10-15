@@ -1,6 +1,6 @@
 ---
 layout: post
-title: algorithm 1
+title: algorithm 2
 categories: [algorithm]
 keywords: algorithm
 ---
@@ -102,7 +102,7 @@ public class b04_替换空格 {
 
 ### 从尾到头打印链表
 
-曾经跪在这道题上...
+曾经跪在这道题上, 腾讯的最后一面
 
 ```java
 /**
@@ -140,7 +140,7 @@ public class b05_从尾到头打印链表 {
     }
 ```
 
-### 重建二叉树
+### 重建二叉树 @todo
 
 ```java
 /**
@@ -268,7 +268,7 @@ public class b08_旋转数组中二分查找最小数字 {
 
 ### 斐波那契数列
 
-大一上学期, 转专业跪在这道题上
+大一上学期, 转专业面试时倒在这道题上
 
 ```java
 public class b09_斐波那契数列 {
