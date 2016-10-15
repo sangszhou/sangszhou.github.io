@@ -54,6 +54,12 @@ class ZKRebalancerListener(val group: String, val consumerIdString: String,
     extends IZkChildListener
 ```
 
+### At least once
+
+[](https://cwiki.apache.org/confluence/display/KAFKA/Idempotent+Producer)
+
+
+
 ## Consumer(2) Fetcher
 
 获取TopicMetadata,使用生产者模式发送一个需要响应结果的TopicMetadataRequest.
@@ -240,6 +246,5 @@ Partition的offset的源头是topicRegistry的fetchOffsets(即从offsetChannel�
 ![](http://img.blog.csdn.net/20160129084955562)
 
 ### KafkaApis 的处理逻辑
-
 
 
