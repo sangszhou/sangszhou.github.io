@@ -133,3 +133,155 @@ find . -type f -szie +1G -print
 
 ### 
 
+### 个人项目面试题, 包括 HBase, Kafka, TCP 长连接问题
+
+http://blog.csdn.net/lisonglisonglisong/article/details/51327589
+
+上面还有各种面试题
+
+http://blog.csdn.net/lisonglisonglisong/article/details/51327589
+
+### Kafka 问题
+
+就问你一个基本的streaming service怎么implement
+数据怎么存，怎么读写。在拓展看来分布式情况下怎么handle traffic fault
+tolerate bla blahh
+言之有理就行
+
+
+### TIME_WAIT 状态的产生、危害、如何避免？
+
+TCP协议在关闭连接的四次挥手中，为了应对最后一个 ACK 丢失的情况，Client（即主动关闭连接的一方）需要维持 time_wait 状态并停留 2 个 MSL 的时间
+
+危害：Linux分配给一个用户的文件句柄是有限的，如果系统中存在大量的 time_wait 状态，一旦达到句柄数上限，新的请求就无法被处理了，
+而且大量 time_wait 连接占用资源影响性能。
+
+如何避免：在/etc/sysctl.conf文件中开启 net.ipv4.tcp_tw_reuse 重用和 net.ipv4.tcp_tw_recycle 快速回收
+
+### 5、守护、僵尸、孤儿进程的概念
+
+1. 守护进程：运行在后台的一种特殊进程，独立于控制终端并周期性地执行某些任务。
+2. 僵尸进程：一个进程 fork 子进程，子进程退出，而父进程没有 wait/waitpid子进程，那么子进程的进程描述符仍保存在系统中，这样的进程称为僵尸进程。
+3. 孤儿进程：一个父进程退出，而它的一个或多个子进程还在运行，这些子进程称为孤儿进程。（孤儿进程将由 init 进程收养并对它们完成状态收集工作）
+
+### linux下你常用的命令有哪些
+
+【答】ll、pwd、touch、rm、mkdir、rmdir、mv、cp、ln 
+cat、less、more、tail、vim、vimdiff、grep 
+tar、rz、sz 
+df、du、free、top、ethtool、sar、netstat、iostat、ps 
+ifconfig、ping、talnet
+
+### TCP建立连接为什么需要三次？断开连接又为什么需要四次
+
+“三次握手”的主要目的是为了防止已失效的连接请求报文段突然又传送到了服务端，因而产生错误
+
+### 5、数据库索引的优缺点？
+
+优点：提高数据检索的性能。 
+缺点：
+
+1. 索引会占据物理存储空间
+2. 当向表中添加/删除数据时，索引也需动态更新，降低了插入/删除的速度
+
+### 6、数据库的三范式？
+
+1. 1NF：字段不可分（原子性）
+2. 2NF：有主键，非主键字段依赖主键（唯一性）
+3. 3NF：非主键字段不能相互依赖（每列都与主键有直接关系，不存在传递依赖）
+
+### 7、如何在一个不安全的环境中实现安全的数据通信？
+
+要实现数据的安全传输，当然就要对数据进行加密了。
+
+如果使用对称加密算法，加解密使用同一个密钥，除了自己保存外，对方也要知道这个密钥，才能对数据进行解密。如果你把密钥也一起传过去，
+就存在密码泄漏的可能。所以我们使用非对称算法，过程如下：
+
+* 首先 接收方 生成一对密钥，即私钥和公钥；
+* 然后，接收方 将公钥发送给 发送方；
+* 发送方用收到的公钥对数据加密，再发送给接收方；
+* 接收方收到数据后，使用自己的私钥解密。
+
+由于在非对称算法中，公钥加密的数据必须用对应的私钥才能解密，而私钥又只有接收方自己知道，这样就保证了数据传输的安全性。
+
+非对称算法的计算时间会耗费的比较长
+
+### 3、阻塞IO、非阻塞IO、同步IO、异步IO的区别？
+    
+阻塞IO（blocking IO）：线程阻塞以等待数据，然后将数据从内核拷贝到进程，返回结果之后才解除阻塞状态。也就是说两个阶段都被block了。
+
+非阻塞IO（non-blocking IO）：当对一个非阻塞socket执行读操作时，如果kernel中的数据还没有准备好，那么它并不会block用户进程，而是立刻返回一个error。用户进程需要不断地主动进行read操作，一旦数据准备好了，就会把数据拷贝到用户内存。也就是说，第一阶段并不会阻塞线程，但第二阶段拷贝数据还是会阻塞线程。
+
+IO复用（IO multiplexing）：这种IO方式也称为event driven IO. 通过使用select/poll/epoll在单个进程中同时处理多个网络连接的IO。例如，当用户进程调用了select，那么整个进程会被block，通过不断地轮询所负责的所有socket，当某个socket的数据准备好了，select就会返回。这个时候用户进程再调用read操作，将数据从kernel拷贝到用户进程。在IO复用模型中，实际上对于每一个socket，一般都设置成为non-blocking，但是，整个用户进程其实是一直被block的，先是被select函数block，再是被socket IO第二阶段block。
+
+同步IO（synchronous IO）：POSIX中的同步IO定义是—— A synchronous I/O operation causes the requesting process to be blocked until that I/O operation completes。也就是说同步IO在IO操作完成之前会阻塞线程，按照这个定义，之前所述的blocking IO，non-blocking IO，IO multiplexing都属于synchronous IO。（non-blocking IO也属于同步IO是因为它在真正拷贝数据时也会阻塞线程）
+
+异步IO（asynchronous IO）：POSIX中的异步IO定义是—— An asynchronous I/O operation does not cause the requesting process to be blocked。在linux异步IO中，用户进程发起read操作之后，直接返回，去做其它的事。而另一方面，从kernel的角度，当它受到一个asynchronous read之后，kernel会等待数据准备完成，然后将数据拷贝到用户内存，当这一切都完成之后，kernel会给用户进程发送一个signal，告诉它read操作完成了。也就是说两个阶段都不会阻塞线程。它就像是用户进程将整个IO操作交给了他人（kernel）完成，然后他人做完后发信号通知。在此期间，用户进程不需要去检查IO操作的状态，也不需要主动的去拷贝数据。
+
+### 简述一下ping的原理
+
+简单地说，ping就是给目标IP地址发送一个 ICMP 回显请求，并要求对方返回一个 ICMP 回显应答来确定两台网络机器是否连通，时延是多少。
+
+在 ICMP 逐层封装的过程中，需要知道源IP、源MAC地址、目的IP、目的MAC地址，前三者是已知的，只需要获取目的MAC地址即可：
+
+若在同一网段，只需要发送ARP广播；
+
+若不在同一网段，发送ARP广播给交换机，交换机若没有缓存目的IP对应的MAC地址，它会再转发该ARP广播包。
+
+### 4、什么是事务？事务有哪些特性？
+
+【解】事务是指作为单个逻辑工作单元执行的一系列操作，要么完全地执行，要么完全地不执行。
+
+1. 原子性：要么完全执行，要么完全不执行
+2. 一致性：事务完成时，所有数据保持一致
+3. 隔离性：多个事务作修改时，互相隔离
+4. 持久性：事务所作的修改是永久性的
+
+### 5、MySQL的引擎 InnoDB 和 MyISAM 的区别。
+
+1. InnoDB支持外键，MyISAM不支持；
+2. InnoDB支持事务处理，MyISAM不支持；
+3. InnoDB是行锁，MyISAM是表锁；
+4. MyISAM是默认的存储引擎，强调性能。
+
+### 心跳包和 TCP keep alive 的区别
+
+首先，对于网络通信我们选择使用TCP长连接，因为对于卡牌类手游可以容忍偶尔地延迟，并且有服务器主动给客户端推送消息的需求。
+优点：
+
+1. 简单有效的长连接
+2. 可靠的信息传输
+3. 数据包的大小没有限制
+4. 服务器可以主动向客户端推送消息（广播等）
+
+客户端每隔3s发送一次心跳包给服务器，通知服务器自己仍然在线，并获取服务器数据更新 —— 心跳包可以防止TCP的死连接问题，避免出现长时间不在线的死链接仍然出现在服务端的管理任务中。当客户端长时间切换到后台时，进程被挂起，连接会断开。
+
+TCP协议本身就有keep-alive机制，为什么还要在应用层实现自己的心跳检测机制呢？
+
+TCP的keep-alive机制可能在短暂的网络异常中，将一个良好的连接给断开；
+
+keep-alive设计初衷是清除和回收死亡时间长的连接，不适合实时性高的场合，而且它会先要求连接一定时间内没有活动，周期长，这样其实已经断开很长一段时间，没有及时性；
+
+keep-alive不能主动通知应用层；
+
+另外，想要通过心跳包来获取服务器的数据更新，所以选择自己在应用层实现；
+
+### log level
+
+```
+Fatal	Highest level: important stuff down
+Error	For example application crashes / exceptions.
+Warn	Incorrect behavior but the application can continue
+Info	Normal behavior like mail sent, user updated profile etc.
+Debug	Executed queries, user authenticated, session expired
+Trace	Begin method X, end method X etc
+```
+
+
+
+
+
+
+
+
+

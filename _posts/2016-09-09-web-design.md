@@ -101,8 +101,12 @@ API gateway 提供路由, 负载均衡, API 访问权限控制, 安全等功能,
 
 Rundeck
 
-
 **HEAD** 检查一个对象是否存在
+
+### 何为幂等可重试（安全操作）
+
+[链接](http://blog.csdn.net/caisini_vc/article/details/50949590)
+
 ## 参考资料
 
 [谈谈互联网后端基础设施](http://www.rowkey.me/blog/2016/08/27/server-basic-tech-stack/)

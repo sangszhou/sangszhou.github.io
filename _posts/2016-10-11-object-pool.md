@@ -210,3 +210,49 @@ class ThreadSafeObjectPool[T]
 ```
 
 
+### RateLimit 的实现
+
+源码没看懂, 也没看到好的文章介绍, 我来分析下我自己的想法
+
+首先, 当一个 request 到来以后, 假如 storedPermits 足够多的话, 直接执行 request。
+如果没有足够的 permits, 但是 nextExecTime 小于等于当前时间的话, 说明只是 permits 不够
+而已, 而不是因为 permits 被被人占用了。第三种情况是 nextExecTime 大于当前时间, 也就说
+permits 已经被别人预约到未来的某个时间点了, 这个时候, 我们计算当前 request 需要继续
+等多久才可以执行操作, wait(time) 等他醒来后可以直接执行操作, 和 permits 无关了, 下面是
+伪代码
+
+```acquire
+void acquire(int permits)
+    synchronized {
+        // 计算可用的 permits
+        long currentTime = system.currentNanoTime
+        
+        if(currentTime < nextExecTime) {
+            // 当前和未来一段时间的 permits 都被预约了, 计算需要等待的时间
+            // 当前的 storedPermits 肯定是 0 了
+            int waitTime = permits / time4OnePermit
+            nextExecTime = waitTime + nextExecTime // 更新下一次可执行的时间
+            sleep(waitTime)
+        } else { // 可用可用的 permits
+            storedPermits += (currentTime - nextExecTime) / time4OnePermits
+            nextExecTime = currentTime
+            if(storedPermits > permits) { // 如果没有超出
+                storedPermits -= permits
+                // 继续执行后续的操作
+            } else {
+                int waitTime = (permits - storedPermits) / time4OnePermits
+                nextExecTime = nextExecTime + waitTime
+                storedPermits = 0 // 都用完了
+                wait(waitTime)
+            }
+        }
+    }
+```
+
+分布式 RateLimiter
+
+只要把 nextExecTime 和 currentTime 放到 redis 中即可, 但是要注意锁的使用
+
+**yahoo 开源项目**
+
+[](https://yahooeng.tumblr.com/post/111288877956/cloud-bouncer-distributed-rate-limiting-at-yahoo)
