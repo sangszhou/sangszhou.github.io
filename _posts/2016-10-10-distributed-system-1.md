@@ -1,7 +1,6 @@
 ### CAP 理论
 
 
-
 Consistency, Availability 和 Partition tolerance
 
 **Consistency**
