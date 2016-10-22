@@ -1,14 +1,8 @@
 ---
 layout: post
-<<<<<<< HEAD
-title: Kafka networking
-categories: [kafka]
-keywords: kafka, java, nio
-=======
 title: kafka networking
 categories: [kafka]
 keywords: kafka
->>>>>>> 92b30acbd6e62654a0c926be44ff254aed9e52e4
 ---
 
 ## 流程

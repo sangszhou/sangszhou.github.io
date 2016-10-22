@@ -6,6 +6,134 @@ categories: spring
 keywords: java, spring, Security
 ---
 
+### CSRFFilter
+
+在web应用中增加前置过滤器，对需要验证的请求验证是否包含csrf的token信息，如果不包含，则报错。这样攻击网站无法获取到token信息，则跨域提交的信息都无法通过过滤器的校验。
+
+CookieCsrfTokenRepository persist the CSRF token in a cookie named "XSRF-TOKEN" and reads from the header "X-XSRF-TOKEN" following the conventions of AngularJS. 除了 Cookie 以外，还可以保存在 HttpSessionCsrfTokenRepository 中
+
+判断逻辑很简单， 就是查看 token 和记录的是否一致
+
+```java
+protected void doFilterInternal(HttpServletRequest request,
+			HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
+    request.setAttribute(HttpServletResponse.class.getName(), response);
+
+		CsrfToken csrfToken = this.tokenRepository.loadToken(request);
+		final boolean missingToken = csrfToken == null;
+		if (missingToken) {
+			csrfToken = this.tokenRepository.generateToken(request);
+			this.tokenRepository.saveToken(csrfToken, request, response);
+		}
+		request.setAttribute(CsrfToken.class.getName(), csrfToken);
+		request.setAttribute(csrfToken.getParameterName(), csrfToken);
+
+		if (!this.requireCsrfProtectionMatcher.matches(request)) {
+			filterChain.doFilter(request, response);
+			return;
+		}
+
+		String actualToken = request.getHeader(csrfToken.getHeaderName());
+		if (actualToken == null) {
+			actualToken = request.getParameter(csrfToken.getParameterName());
+		}
+		if (!csrfToken.getToken().equals(actualToken)) {
+			if (this.logger.isDebugEnabled()) {
+				this.logger.debug("Invalid CSRF token found for "
+						+ UrlUtils.buildFullRequestUrl(request));
+			}
+			if (missingToken) {
+				this.accessDeniedHandler.handle(request, response,
+						new MissingCsrfTokenException(actualToken));
+			}
+			else {
+				this.accessDeniedHandler.handle(request, response,
+						new InvalidCsrfTokenException(csrfToken, actualToken));
+			}
+			return;
+		}
+
+		filterChain.doFilter(request, response);
+	}
+```
+
+前端用法
+
+```html
+<meta name="_csrf" content="${_csrf.token}"/>  
+<meta name="_csrf_header" content="${_csrf.headerName}"/>  
+
+var token = $("meta[name='_csrf']").attr("content");  
+var header = $("meta[name='_csrf_header']").attr("content");  
+$(document).ajaxSend(function(e, xhr, options) {  
+    xhr.setRequestHeader(header, token);  
+});  
+```
+
+meta 从哪获取的数据呢？
+
+### RememberMeAuthenticationFilter
+
+Detects if there is no {@code Authentication} object in the {@code SecurityContext},
+and populates the context with a remember-me authentication token if a
+{@link RememberMeServices} implementation so requests.
+
+```java
+if (SecurityContextHolder.getContext().getAuthentication() == null) {
+  Authentication rememberMeAuth = rememberMeServices.autoLogin(request,
+      response);
+```
+
+这个 Filter 和 SecurityContextPersistentFilter 的区别在于，PersistentFilter 总是从 HttpSession 或者 Cookies 中
+登录，但是它从 RememberMeService 中登录
+
+RememberMeService 以前总结过，他要借助 cookie 中的数据，在某些情况下，cookie 直接保存用户名密码，另外的情况下，它保存 username 和
+一个序列号，通过对比序列号和 username 获得想要的值
+
+### LogoutFilter
+
+Polls a series of {@link LogoutHandler}s. The handlers should be specified in the order
+they are required. Generally you will want to call logout handlers
+<code>TokenBasedRememberMeServices</code> and <code>SecurityContextLogoutHandler</code>
+(in that order).
+
+After logout, a redirect will be performed to the URL determined by either the
+configured <tt>LogoutSuccessHandler</tt> or the <tt>logoutSuccessUrl</tt>, depending on
+which constructor was used.
+
+注释写的很清楚了
+
+### AnonymousAuthenticationFilter
+
+Detects if there is no {@code Authentication} object in the
+{@code SecurityContextHolder}, and populates it with one if needed.
+
+### ExceptionTranslationFilter
+
+Handles any <code>AccessDeniedException</code> and <code>AuthenticationException</code>
+thrown within the filter chain.
+
+If an {@link AuthenticationException} is detected, the filter will launch the
+<code>authenticationEntryPoint</code>. This allows common handling of authentication
+failures originating from any subclass of AbstractSecurityInterceptor
+
+If an {@link AccessDeniedException} is detected, the filter will determine whether or
+not the user is an anonymous user. If they are an anonymous user, the
+<code>authenticationEntryPoint</code> will be launched. If they are not an anonymous
+user, the filter will delegate to the AccessDeniedHandler.
+
+<li><code>authenticationEntryPoint</code> indicates the handler that should commence
+the authentication process if an <code>AuthenticationException</code> is detected. Note
+that this may also switch the current protocol from http to https for an SSL login.
+<li><tt>requestCache</tt> determines the strategy used to save a request during the
+authentication process in order that it may be retrieved and reused once the user has
+authenticated. The default implementation is {@link HttpSessionRequestCache}.
+
+
+
+
+往往这个时候已经认证过了，它可以返回 403 Forbidden, 因为要访问的权限不足，或者弹出页面让用户登录
 
 This post gonna be long
 
@@ -78,32 +206,32 @@ filterChain 是 url 与 filter 的对应关系
 3 = {DefaultSecurityFilterChain@5326} "[ Ant [pattern='/webjars/**'], []]"
 4 = {DefaultSecurityFilterChain@5327} "[ Ant [pattern='/**/favicon.ico'], []]"
 5 = {DefaultSecurityFilterChain@5328} "[ Ant [pattern='/error'], []]"
-6 = {DefaultSecurityFilterChain@5329} "[ org.springframework.security.web.util.matcher.AnyRequestMatcher@1, 
-    
+6 = {DefaultSecurityFilterChain@5329} "[ org.springframework.security.web.util.matcher.AnyRequestMatcher@1,
+
     org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@6ca8fcf3,
-    org.springframework.security.web.context.SecurityContextPersistenceFilter@18371d89, 
-    org.springframework.security.web.header.HeaderWriterFilter@643d2dae, 
-    org.springframework.security.web.csrf.CsrfFilter@2f860823, 
-    org.springframework.security.web.authentication.logout.LogoutFilter@4a8e6e89, 
-    org.springframework.security.web.authentication.www.BasicAuthenticationFilter@4483d35, 
-    org.springframework.security.web.savedrequest.RequestCacheAwareFilter@4832f03b, 
-    org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@5115f590, 
-    org.springframework.security.web.authentication.AnonymousAuthenticationFilter@69f0b0f4, 
-    org.springframework.security.web.session.SessionManagementFilter@c017175, 
-    org.springframework.security.web.access.ExceptionTranslationFilter@69afa141, 
+    org.springframework.security.web.context.SecurityContextPersistenceFilter@18371d89,
+    org.springframework.security.web.header.HeaderWriterFilter@643d2dae,
+    org.springframework.security.web.csrf.CsrfFilter@2f860823,
+    org.springframework.security.web.authentication.logout.LogoutFilter@4a8e6e89,
+    org.springframework.security.web.authentication.www.BasicAuthenticationFilter@4483d35,
+    org.springframework.security.web.savedrequest.RequestCacheAwareFilter@4832f03b,
+    org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@5115f590,
+    org.springframework.security.web.authentication.AnonymousAuthenticationFilter@69f0b0f4,
+    org.springframework.security.web.session.SessionManagementFilter@c017175,
+    org.springframework.security.web.access.ExceptionTranslationFilter@69afa141,
     org.springframework.security.web.access.FilterSecurityInterceptor"
 
-7 = {DefaultSecurityFilterChain@5330} "[ OrRequestMatcher [requestMatchers=[Ant [pattern='/**']]], 
-    org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@3481ff98, 
-    org.springframework.security.web.context.SecurityContextPersistenceFilter@1fc713c9, 
-    org.springframework.security.web.header.HeaderWriterFilter@1e236278, 
-    org.springframework.security.web.authentication.logout.LogoutFilter@4d6ccc97, 
-    org.springframework.security.web.authentication.www.BasicAuthenticationFilter@6a12c7a8, 
-    org.springframework.security.web.savedrequest.RequestCacheAwareFilter@7301eebe, 
-    org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@76b47204, 
-    org.springframework.security.web.authentication.AnonymousAuthenticationFilter@2ddb3ae8, 
-    org.springframework.security.web.session.SessionManagementFilter@44fff386, 
-    org.springframework.security.web.access.ExceptionTranslationFilter@8cc8cdb, 
+7 = {DefaultSecurityFilterChain@5330} "[ OrRequestMatcher [requestMatchers=[Ant [pattern='/**']]],
+    org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@3481ff98,
+    org.springframework.security.web.context.SecurityContextPersistenceFilter@1fc713c9,
+    org.springframework.security.web.header.HeaderWriterFilter@1e236278,
+    org.springframework.security.web.authentication.logout.LogoutFilter@4d6ccc97,
+    org.springframework.security.web.authentication.www.BasicAuthenticationFilter@6a12c7a8,
+    org.springframework.security.web.savedrequest.RequestCacheAwareFilter@7301eebe,
+    org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@76b47204,
+    org.springframework.security.web.authentication.AnonymousAuthenticationFilter@2ddb3ae8,
+    org.springframework.security.web.session.SessionManagementFilter@44fff386,
+    org.springframework.security.web.access.ExceptionTranslationFilter@8cc8cdb,
     org.springframework.security.web.access.intercept.FilterSecurityInterceptor@17ba57f0]]"
 ```
 
@@ -183,8 +311,8 @@ public Map<String, Object> home() {
 
 **SecurityContextPersistentFilter**
 
-Populate the SecurityContextHolder with information obtained from the configured SecurityContextRepository prior to the 
-request and stores it back in the repository once the request has completed and clearing the context holder. By default, 
+Populate the SecurityContextHolder with information obtained from the configured SecurityContextRepository prior to the
+request and stores it back in the repository once the request has completed and clearing the context holder. By default,
 it use HttpSessionSecurityContextRepository.
 
 
@@ -196,13 +324,13 @@ repo.saveContext()
 
 interface SecurityContextRepository
     SecurityContext loadContext(HttpRequestResponseHolder requestResponseHolder)
-    
+
     // 放到 Session 中, 下次用户访问直接获取
     void saveContext(SecurityContext context, HttpServletRequest request, HttpServletResponse response);
-    
+
 HttpSession load SecurityContext
     Object contextFromSession = httpSession.getAttribute("SPRING_SECURITY_CONTEXT");
-    
+
 ```
 
 
@@ -223,16 +351,16 @@ public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
     Authentication authentication = tokenExtractor.extract(request);
     logger.debug("No token in request, will continue chain.");
     request.setAttribute(OAuth2AuthenticationDetails.ACCESS_TOKEN_VALUE, authentication.getPrincipal());
-    
-    if (authentication instanceof AbstractAuthenticationToken) 
+
+    if (authentication instanceof AbstractAuthenticationToken)
         AbstractAuthenticationToken needsDetails = (AbstractAuthenticationToken) authentication;
     	needsDetails.setDetails(authenticationDetailsSource.buildDetails(request));
-    
+
     Authentication authResult = authenticationManager.authenticate(authentication);
-    				
+
     eventPublisher.publishAuthenticationSuccess(authResult);
 	SecurityContextHolder.getContext().setAuthentication(authResult);		
-    
+
     catch (OAuth2Exception failed) {
         SecurityContextHolder.clearContext();
         eventPublisher.publishAuthenticationFailure(new BadCredentialsException(failed.getMessage(), failed),
@@ -241,7 +369,7 @@ public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
         	new InsufficientAuthenticationException(failed.getMessage(), failed));
 ```
 这个 filter 做得事情就是从 header 或者 parameter 中拿到 token, 然后用 authenticationManager 验证 token 的有效性。
- 
+
 **拿 token**
 
 ```java
@@ -262,21 +390,21 @@ protected String extractToken(HttpServletRequest request)
 public Authentication authenticate(Authentication authentication) throws AuthenticationException
     String token = (String) authentication.getPrincipal();
     OAuth2Authentication auth = tokenServices.loadAuthentication(token);
-    
+
     if (auth == null) throw new InvalidTokenException("Invalid token: " + token);
-    
+
     Collection<String> resourceIds = auth.getOAuth2Request().getResourceIds();
     if (resourceId != null && resourceIds != null && !resourceIds.isEmpty() && !resourceIds.contains(resourceId))
         throw new OAuth2AccessDeniedException("Invalid token does not contain resource id (" + resourceId + ")");
-    
+
     // check client detail
-    
+
     client = clientDetailsService.loadClientByClientId(auth.getOAuth2Request().getClientId());
     Set<String> allowed = client.getScope();
-    
+
     for (String scope : auth.getOAuth2Request().getScope()) {
         if (!allowed.contains(scope)) {
-    	    throw new OAuth2AccessDeniedException("Invalid token contains 
+    	    throw new OAuth2AccessDeniedException("Invalid token contains
     	        disallowed scope (" + scope + ") for this client");    				
 ```
 
@@ -308,7 +436,7 @@ public Authentication authenticate(Authentication authentication) throws Authent
 Oauth2RestTemplate.acquireAccessToken
 accessToken = accessTokenProvider.obtainAccessToken(resource, accessTokenRequest);
 ```
-accessTokenProvider 由 4 种 provider 构成, 默认是哪一种, 或者如何配置暂时不知道, 在这里例子里, 提供的是 
+accessTokenProvider 由 4 种 provider 构成, 默认是哪一种, 或者如何配置暂时不知道, 在这里例子里, 提供的是
 AuthorizationCodeAccessTokenProvider
 
 ```java
@@ -333,7 +461,7 @@ getRedirectForAuthorization
     String redirectUri = resource.getRedirectUri(request)
     if (redirectUri != null)
         requestParameters.put("redirect_uri", redirectUri)
-    
+
     if (resource.isScoped())
         StringBuilder builder = new StringBuilder()
         List<String> scope = resource.getScope()
@@ -348,30 +476,30 @@ getRedirectForAuthorization
 // 继续创建 request 写入需要的一切信息
 obtainAuthorizationCode
     AuthorizationCodeResourceDetails resource = (AuthorizationCodeResourceDetails) details;
-    
+
     if (request.containsKey(OAuth2Utils.USER_OAUTH_APPROVAL)) {
         form.set(OAuth2Utils.USER_OAUTH_APPROVAL, request.getFirst(OAuth2Utils.USER_OAUTH_APPROVAL));
     	for (String scope : details.getScope()) {
     		form.set(scopePrefix + scope, request.getFirst(OAuth2Utils.USER_OAUTH_APPROVAL));
     		final ResponseExtractor<ResponseEntity<Void>> delegate = getAuthorizationResponseExtractor();
-    
+
     // 创建回调函数
     ResponseExtractor<ResponseEntity<Void>> extractor = new ResponseExtractor<ResponseEntity<Void>>() {
         public ResponseEntity<Void> extractData(ClientHttpResponse response) throws IOException {
     	if (response.getHeaders().containsKey("Set-Cookie")) {
     		copy.setCookie(response.getHeaders().getFirst("Set-Cookie"));
     		return delegate.extractData(response);
-    
+
     ResponseEntity<Void> response = getRestTemplate().execute(resource.getUserAuthorizationUri(), HttpMethod.POST,
         getRequestCallback(resource, form, headers), extractor, form.toSingleValueMap());
-    
+
     // 抛出异常, 让后续的 filte 拦截
     // 如果不需要用户确认, 返回 status code 是多少
     if (response.getStatusCode() == HttpStatus.OK) {
     			// Need to re-submit with approval...
-        throw getUserApprovalSignal(resource, request); 
+        throw getUserApprovalSignal(resource, request);
     // throw exception 后面还有代码, 这个在哪里执行呢? 上面这个 exception 是不是 Runtime exception
-    
+
     URI location = response.getHeaders().getLocation();
     String query = location.getQuery();
     // checking if state is correct
@@ -515,13 +643,10 @@ SessionAuthenticationStrategy 回调, EventPublication
 
 回调
 
-setAuthenticationSuccessHandler, savedRequestAwareAuthenticationSuccessHandler 
+setAuthenticationSuccessHandler, savedRequestAwareAuthenticationSuccessHandler
 
 认证失败
 
 AuthenticationFailureHandler
 
 ## 配置模板项目
-
-
-

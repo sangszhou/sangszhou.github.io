@@ -10,11 +10,11 @@ keywords: kafka
 
 ### 使用命令行创建 Producer 并发送消息
 
-bin/kafka-producer.sh --create producer 
+bin/kafka-producer.sh --create producer
 
 > This is a message
 
-> another message 
+> another message
 
 
 
@@ -23,9 +23,9 @@ bin/kafka-producer.sh --create producer
 ### 使用代码发送消息
 
 ```scala
-  def createProducer[K, V](brokerList: String, serializerClass: String, requiredAcks: String, 
+  def createProducer[K, V](brokerList: String, serializerClass: String, requiredAcks: String,
     partitionerClass: String = "kafka.producer.DefaultPartitioner"): Producer[K, V] = {
-    
+
     val props = new Properties()
     props.put("metadata.broker.list", brokerList)
     props.put("serializer.class", serializerClass)
@@ -34,7 +34,7 @@ bin/kafka-producer.sh --create producer
     val config = new ProducerConfig(props)
     new Producer[K, V](config)
   }
-  
+
 val kafkaProducer: Producer[String, String] = KafkaUtils.createProducer(broker, serializer, acks)
 
 // def send(messages : java.util.List[kafka.producer.KeyedMessage[K, V]])
@@ -47,10 +47,10 @@ kafkaProducer.send(contentList.asJava)
 ### 使用 scala 代码
 
 ```scala
-def createConsumers(zookeeperConnect: String, consumerGroup: String, sessionTimeout: String, 
-    syncTime: String, commitInterval: String, connectionTimeout: String, consumerTimeout: String, 
+def createConsumers(zookeeperConnect: String, consumerGroup: String, sessionTimeout: String,
+    syncTime: String, commitInterval: String, connectionTimeout: String, consumerTimeout: String,
     autoOffsetReset: String, topic: String, numOfConsumers: Int): Array[KafkaStream[Array[Byte], Array[Byte]]] = {
-  
+
   val props: Properties = new Properties
   props.put("zookeeper.connect", zookeeperConnect)
   props.put("group.id", consumerGroup)
@@ -60,7 +60,7 @@ def createConsumers(zookeeperConnect: String, consumerGroup: String, sessionTime
   props.put("zookeeper.connection.timeout.ms", connectionTimeout)
   props.put("consumer.timeout.ms", consumerTimeout)
   props.put("auto.offset.reset", autoOffsetReset)
-  
+
   val config = new ConsumerConfig(props)
   val consumerConnector = kafka.consumer.Consumer.createJavaConsumerConnector(config)
   val topicCountMap: util.Map[String, Integer] = new util.HashMap[String, Integer]()
@@ -102,7 +102,7 @@ def createConsumers(zookeeperConnect: String, consumerGroup: String, sessionTime
 10s 之后的数据它不再关心了。然而 kafka 的代码往往是 while 循环, 那么怎么处理这个问题呢
 
 要点是, kafka 的 iterator 函数应该变成超时返回的, 先把 consumer.timeout.ms 设置成一个比较小的值, 然后
-封装 next 方法, 搞一个 timedHasNext 
+封装 next 方法, 搞一个 timedHasNext
 
 ```scala
 def timedHasNext(it: ConsumerIterator[Array[Byte], Array[Byte]]): Boolean = {
@@ -124,7 +124,7 @@ def timedHasNext(it: ConsumerIterator[Array[Byte], Array[Byte]]): Boolean = {
 val streamIterator = consumer map (_.iterator())
 
 // 拿 size 个 message
-try 
+try
    (1 to size).foreach { _ =>
     streamIterator foreach { ci: ConsumerIterator[Array[Byte], Array[Byte]] => {
        if (System.currentTimeMillis() < requestEndTime && KafkaUtils.timedHasNext(ci)) {
@@ -137,10 +137,10 @@ try
 
         log.debug(s"consumer actor get message: ($key, $value) for topic: $topic")
         lstbf += MessageContent(key, value)
-catch 
+catch
    case e: Exception =>
        log.error("failed to execute next() method", e)
-finally 
+finally
    requester ! ConsumerResult(topic, group, lstbf.toList)
 ```
 
@@ -171,7 +171,7 @@ Kafka partition has owner, so it cannot be shared within nodes. but why?
 ### 更新 earliest, largest
 
 ```shell
-$ bin/kafka-run-class.sh kafka.tools.UpdateOffsetsInZK 
+$ bin/kafka-run-class.sh kafka.tools.UpdateOffsetsInZK
 USAGE: kafka.tools.UpdateOffsetsInZK$ [earliest | latest] consumer.properties topic
 ```
 
@@ -179,7 +179,7 @@ consumer.properties 中的配置是 zookeeper 和 group 信息
 
 ```
 zookeeper.connect=www.iteblog.com:2181
- 
+
 # timeout in ms for connecting to zookeeper
 zookeeper.connection.timeout.ms=6000
 
@@ -190,7 +190,7 @@ zookeeper.connection.timeout.ms=6000
 
 ### zookeeper 设置偏移量
 
-Kafka topic 的偏移量一般都是存储在 Zookeeper 中, 具体的路径为 
+Kafka topic 的偏移量一般都是存储在 Zookeeper 中, 具体的路径为
 `/consumers/[groupId]/offsets/[topic]/[partitionId]`
 
 所以可以使用 set 来设置分区的偏移量
@@ -228,14 +228,14 @@ If the key is null, then the producer will assign the message to a random partit
 def getPartition(topic: String, key: Any, topicPartitionList: Seq[PartitionAndLeader]
     val numPartitions = topicPartitionList.size
     if(numParitions <= 0) throw new UnknownTopicPartitionExecption("Topic " + Topic + " doesn't exist")
-    
+
     val partition =
         if(key == null)
         // if the key is null, we don't really need a partitioner
-        // so we look up in the send partition cache for the topic to 
+        // so we look up in the send partition cache for the topic to
         // decide the target partition
         val id = sendPartitionPerTopicCache.get(topic)
-        
+
         id match
             case Some(partitionId) =>
                 // directly return the partitionId without checking availability
@@ -254,7 +254,7 @@ def getPartition(topic: String, key: Any, topicPartitionList: Seq[PartitionAndLe
             partitioner.partition(key, numPartitions)
      if(partition < 0 || partition >= numPartitions)
         throw new UnknownTopicOrParititionExcepiton()
-     
+
      partition
 ```
 
@@ -265,74 +265,55 @@ def getPartition(topic: String, key: Any, topicPartitionList: Seq[PartitionAndLe
 也就是说在 Key == null 的情况下, kafka 并不是每条消息都随机选择一个 Partition, 没事每隔 interval.ms 才会随机一次, 这是
 为了减少服务器端的 sockets 数(当 producer 远大于 brokers 时?)。但在 0.8.2 又被改回去了。总之, Key = null 时, 随机分配 partition.
 
-新的算法是使用 Round-robin 每次选取一个分区 ID
-
-```scala
-if(record.partition() != null)
-    if(record.partition() < 0 || record.partition() >= numPartitions)
-        throw new IllegalArgumentException()
-    else if (record.key() == null)
-        int nextValue = counter.getAndIncrement()
-        List<PartitionInfo> availablePartitions = cluster.avaiableParitionForTopic(record.topic)
-        if(avaialblePartitions.size > 0)
-            int part = Utils.abs(nextValue) % availablePartitions.size
-            return avaiblesPartitions.get(part).partition
-        else
-            // no partition available, reutrn a non-avaiable partition
-            return Utils.abs(nextValue) % numPartitions
-    else
-        return Utils.abs(Utils.murmur2(record.key) % numPartitions
-```
-
 ### Message Delivery Semantics
 
-Kafka's semantics are straight-forward. When publishing a message we have a notion of the 
-message being "committed" to the log. Once a published message is committed it will not be lost 
+Kafka's semantics are straight-forward. When publishing a message we have a notion of the
+message being "committed" to the log. Once a published message is committed it will not be lost
 as long as one broker that replicates the partition to which this message was written remains "alive".
 
 
 
-So effectively Kafka guarantees at-least-once delivery by default and allows the user to implement at 
-most once delivery by disabling retries on the producer and committing its offset prior to processing a 
-batch of messages. Exactly-once delivery requires co-operation with the destination storage system 
+So effectively Kafka guarantees at-least-once delivery by default and allows the user to implement at
+most once delivery by disabling retries on the producer and committing its offset prior to processing a
+batch of messages. Exactly-once delivery requires co-operation with the destination storage system
 but Kafka provides the offset which makes implementing this straight-forward.
 
 ### Replication
 
 All reads and writes go to the leader of the partition.
 
-Followers consume messages from the leader just as a normal Kafka consumer would and apply them to their 
-own log. Having the followers pull from the leader has the nice property of allowing the follower to 
+Followers consume messages from the leader just as a normal Kafka consumer would and apply them to their
+own log. Having the followers pull from the leader has the nice property of allowing the follower to
 naturally batch together log entries they are applying to their log.
 
-There are a rich variety of algorithms in this family including ZooKeeper's Zab, Raft, and Viewstamped Replication. 
+There are a rich variety of algorithms in this family including ZooKeeper's Zab, Raft, and Viewstamped Replication.
 The most similar academic publication we are aware of to Kafka's actual implementation is PacificA from Microsoft.
 
-The downside of majority vote is that it doesn't take many failures to leave you with no electable leaders. 
-To tolerate one failure requires three copies of the data, and to tolerate two failures requires five copies of 
-the data. In our experience having only enough redundancy to tolerate a single failure is not enough for a 
-practical system, but doing every write five times, with 5x the disk space requirements and 1/5th the throughput, 
-is not very practical for large volume data problems. This is likely why quorum algorithms more commonly appear 
-for shared cluster configuration such as ZooKeeper but are less common for primary data storage. For example 
-in HDFS the namenode's high-availability feature is built on a majority-vote-based journal, but this 
+The downside of majority vote is that it doesn't take many failures to leave you with no electable leaders.
+To tolerate one failure requires three copies of the data, and to tolerate two failures requires five copies of
+the data. In our experience having only enough redundancy to tolerate a single failure is not enough for a
+practical system, but doing every write five times, with 5x the disk space requirements and 1/5th the throughput,
+is not very practical for large volume data problems. This is likely why quorum algorithms more commonly appear
+for shared cluster configuration such as ZooKeeper but are less common for primary data storage. For example
+in HDFS the namenode's high-availability feature is built on a majority-vote-based journal, but this
 more expensive approach is not used for the data itself.
 
 **in-sync replicas (ISR)**
 
-Kafka takes a slightly different approach to choosing its quorum set. Instead of majority vote, 
-Kafka dynamically maintains a set of in-sync replicas (ISR) that are caught-up to the leader. Only members of this set 
-are eligible for election as leader. A write to a Kafka partition is not considered committed until all in-sync 
-replicas have received the write. This ISR set is persisted to ZooKeeper whenever it changes. Because of this, 
-any replica in the ISR is eligible to be elected leader. This is an important factor for Kafka's usage model 
-where there are many partitions and ensuring leadership balance is important. With this ISR model and f+1 replicas, 
+Kafka takes a slightly different approach to choosing its quorum set. Instead of majority vote,
+Kafka dynamically maintains a set of in-sync replicas (ISR) that are caught-up to the leader. Only members of this set
+are eligible for election as leader. A write to a Kafka partition is not considered committed until all in-sync
+replicas have received the write. This ISR set is persisted to ZooKeeper whenever it changes. Because of this,
+any replica in the ISR is eligible to be elected leader. This is an important factor for Kafka's usage model
+where there are many partitions and ensuring leadership balance is important. With this ISR model and f+1 replicas,
 a Kafka topic can tolerate f failures without losing committed messages.
 
 ### 问题1：发到哪个partition，谁来定?
-    
+
 在发送一条消息时，可以指定这条消息的key，Producer根据这个key和Partition机制来判断应该将这条消息发送到哪个Parition。
 Paritition机制可以通过指定Producer的paritition. class这一参数来指定，该class必须实现kafka.producer.Partitioner接口。
 本例中如果key可以被解析为整数则将对应的整数与Partition总数取余，该消息会被发送到该数对应的Partition。（每个Parition都会有个序号,序号从0开始）
-    
+
 这种问题没有正确的答案，只有到底在牺牲谁的答案。
 
 在目前0.8.2.1的Kafka中，是交由Producer来解决这个问题的，Producer中有个 PartitionManager 专门用于负责对每个Message分配partition，或者由使用者更改。
@@ -359,15 +340,15 @@ Kafka Producer在确定partition leader之后开始与其所在的broker通信�
 
 ```
 message length ： 4 bytes (value: 1+4+n)
-"magic" value ： 1 byte 
-crc ： 4 bytes 
-payload ： n bytes 
+"magic" value ： 1 byte
+crc ： 4 bytes
+payload ： n bytes
 ```
 
 ![](/images/posts/kafka/kafka_message_format.png)
 
 ### 问题3：如何实现日志副本&&副本策略&&同步方式
-    
+
 日志副本策略是可靠性的核心问题之一，其实现方式也是多种多样的。包括无主模型，通过paxos之类的协议保证消息顺序，
 但更简单直接的方式是使用主从结构，主决定顺序，从拷贝主的信息。
 
@@ -433,7 +414,7 @@ Kafka的高吞吐很大程度上得益于其放弃了对消费者offset的维护
 3. 当Consumer要消费时，先去offset topic取出最新的对应消息，然后消费。
 
 ### 问题3： Consumer的关闭异常，会不会存在Offset异常导致多消费或者少消费？
-    
+
 事实上是的。每当Consumer被异常重启时，有一定几率会有一部分数据被重复消费，或者被跳过。
 
 重复数据的数量取决于Consumer同步的频率。比如：
@@ -461,11 +442,58 @@ Consumer重启了，读自己UserGroup里Consumer Manger在该partition最新一
 即可保证Exactly Once语义
 
 
+第一个办法是, 一边读一遍记 log, 记录读到哪里了, 这样当程序 crash and restart, the consumer can
+know why they are by lookingup the log
+
+###  Log 存储
+
+LogSegment 的存储方式
+
+```scala
+class LogSegment(val log: FileMessageSet,
+                 val index: OffsetIndex,
+                 val baseOffset: Long,
+                 val indexIntervalBytes: Int,
+                 val rollJitterMs: Long,
+                 time: Time)
+```
+
+每个 segment 对应一个 log 和 messageset, 而每个 Log 是一坨
+
+```scala
+private val segments: ConcurrentNavigableMap[java.lang.Long, LogSegment] = new ConcurrentSkipListMap[java.lang.Long, LogSegment]
+```
+
+之所以用 navigableMap 就是为了检索的方便， 找到小于它的最大值
+
+LogSegment 写入消息的过程
+
+```scala
+@nonthreadsafe
+def append(offset: Long, messages: ByteBufferMessageSet) {
+  if (messages.sizeInBytes > 0) {
+    trace("Inserting %d bytes at offset %d at position %d".format(messages.sizeInBytes, offset, log.sizeInBytes()))
+    // append an entry to the index (if needed)
+    if(bytesSinceLastIndexEntry > indexIntervalBytes) {
+      index.append(offset, log.sizeInBytes())
+      this.bytesSinceLastIndexEntry = 0
+    }
+    // append the messages
+    log.append(messages)
+    this.bytesSinceLastIndexEntry += messages.sizeInBytes
+  }
+}
+```
+从这边可以看出， 写入 数据的时候， 有可能会伴随 index 的增加
+
+从 disk 到 channel 是 zero copy, 但是从 network 到 disk 却是从 ByteBufferMessageSet 到 channel 直接使用 write, 不知道原因， 可能
+压根就不允许吧。
+
+写入过程是 Log.append (index.append) <- LogSegment.append <- Partition.appendMessageToLeader, ReplicaManager <- appendToLocalLog
 
 
+Class 和作用
 
+ReplicaManager, PartitionManager, Partition, LogManager, Log, LogSegment, Controller, Coordinator
 
-
-
-
-
+这个明天再看吧

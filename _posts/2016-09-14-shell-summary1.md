@@ -17,7 +17,7 @@ if [[ $PROJECT_PERMSIZE != "" ]];then
     maxPermSize=$PROJECT_PERMSIZE
 fi
 
-nohup java  $JAVA_OPTS  -Djdk.logging.allowStackWalkSearch=true -Dconfig.file=$config 
+nohup java  $JAVA_OPTS  -Djdk.logging.allowStackWalkSearch=true -Dconfig.file=$config
     -cp $assembly com.Boot 1>/dev/null 2>$home/logs/err_out.log &
 ```
 
@@ -63,7 +63,7 @@ elif [[ -z $running_status ]]
 
 `parameter=${parameter:-word}`
 
-If parameter is unset or null, the expansion of word is substituted. 
+If parameter is unset or null, the expansion of word is substituted.
 
 Otherwise, the value of parameter is substituted.
 
@@ -262,7 +262,7 @@ k9 表示按照第 9 列排序, -n 是把这一列当做数字来排序, -r 表�
 
 问题:
 
-awk + if, awk + 选择性, NF NR FILENAME, BEGIN END, 分隔符, 内置函数 
+awk + if, awk + 选择性, NF NR FILENAME, BEGIN END, 分隔符, 内置函数
 
 **内置的参数**
 
@@ -283,9 +283,9 @@ NF  浏览记录的域个数
 
 ```shell
 awk '{print NF，NR，$0} END {print FILENAME}' temp
- 
+
 awk '{if (NR>0 && $4~/Brown/) print $0}' temp  至少存在一条记录且包含Brown
- 
+
 NF的另一用法:  echo $PWD | awk -F/ '{print $NF}'   显示当前目录名
 ```
 
@@ -295,27 +295,27 @@ $NF 返回的是这一列的数据
 
 ```bash
 index(s，t)          返回s中字符串t的第一位置
- 
+
 awk 'BEGIN {print index("Sunny"，"ny")}' temp     返回4
- 
+
 length(s)           返回s的长度
- 
+
 match(s，r)          测试s是否包含匹配r的字符串
- 
+
 awk '$1=="J.Lulu" {print match($1，"u")}' temp    返回4
- 
+
 split(s，a，fs)       在fs上将s分成序列a
- 
+
 awk 'BEGIN {print split("12#345#6789"，myarray，"#")"'
- 
+
 返回3，同时myarray[1]="12"， myarray[2]="345"， myarray[3]="6789"
- 
+
 sprint(fmt，exp)     返回经fmt格式化后的exp
- 
+
 sub(r，s)   从$0中最左边最长的子串中用s代替r(只更换第一遇到的匹配字符串)
- 
+
 substr(s，p)         返回字符串s中从p开始的后缀部分
- 
+
 substr(s，p，n)       返回字符串s中从p开始长度为n的后缀部分
 ```
 
@@ -447,7 +447,7 @@ done
 
 只有极个别的符号可以在 awk 中用 $ 修饰
 
-### find file in jar 
+### find file in jar
 
 ```bash
 PROG=`basename $0`
@@ -716,7 +716,7 @@ done | sort -rn -k3
 
 ```shell
 #/bin/sh
- 
+
 #Programm :
 # Using for move currently directory to /tmp
 for FileName in `ls -l | awk '$5>10240 {print $9}'`
@@ -743,7 +743,7 @@ exit
 
 ```shell
 for i in *.*;
-    do 
+    do
         mv $i ${i%%.*}.bak ## 这个 .* 而不是 *.*, 因为它是 strip 的过程
     done
 ```
@@ -798,7 +798,7 @@ status() {
         echo "PID file not exist"
         return 1
      fi
-     
+
      return 0
 }
 
@@ -813,6 +813,3 @@ if [[ $SCRIPTS_NAME == 'status.sh' ]]; then
     fi
 fi
 ```
-
-
-
