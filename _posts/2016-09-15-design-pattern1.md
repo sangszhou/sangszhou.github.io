@@ -483,7 +483,7 @@ SOA 对 Velocity 的修改, 是一种 visitor 模式, 我所做的事情就是�
 ## 代理模式
 
 代理模式是一种应用非常广泛的设计模式，当客户端代码需要调用某个对象时，客户端实际上不关心是否准确得到该对象，
-它只要一个能提供该功能的对象即可，此时我们就可返回该对象的代理（Proxy)
+它只要一个能提供该功能的对象即可，此时我们就可返回该对象的代理（Proxy)。**往往用于增强代理的功能。**
 
 借助于Java提供的Proxy和InvocationHandler，可以实现在运行时生成动态代理的功能，而动态代理对象就可以作为目标对象使用，而且增强了目标对象的功能。如：
 
@@ -619,6 +619,7 @@ Facade f = new Facade();
 f.serveFood();
 ```
 
+<<<<<<< HEAD
 ### Command and Query Responsibility Segregation (CQRS) Pattern
 
 [12306 design](http://chuansong.me/n/2433036)
@@ -764,3 +765,164 @@ public class ProductsCommandHandler :
 [cqrs 总结与例子](http://www.hyperlambda.com/posts/cqrs-es-in-scala/)
 [github example](https://github.com/boldradius/akka-dddd-template#master)
  
+=======
+
+# scala design pattern 与 Java 的比较
+
+### 责任链模式
+
+```scala
+case class Event(source: String)
+
+type EventHandler = PartialFunction[Event, Unit]
+
+val defaultHandler: EventHandler = PartialFunction(_ => ())
+
+val keyboardHandler: EventHandler = {
+  case Event("keyboard") =>
+}
+
+val mouseHandler(delay: Int): EventHandler = {
+  case Event("mouse") =>
+}
+
+keyboardHandler.orElse(mouesHandler(100).orElse(defaultHandler)
+```
+
+```java
+public abstract class EventHandler {
+  private EventHandler next;
+  
+  void setNext(EventHandler handler) {next = handler}
+  public void handle(Event event) {
+    if(canHandle(event) doHandle(event)
+    else if(next != null) next.handle(event);
+  }  
+  
+  abstract protected boolean canHandle(Event event);
+  abstract proctected void doHandle(Event event);
+}
+
+public class KeyBoardHandler extends EventHandler {
+  canHandle(Event event) 
+    return "keyboard".equals(event.getSource);
+}
+
+KeyboardHandler handler = new KeyBoardHandler();
+handler.setNext(new MouseHandler());
+```
+
+### 命令模式
+
+```scala
+object Invoker {
+  private var history: Seq[() => Unit] = Seq.empty
+  
+  def invoke(command :=> Unit) { //by-name parameter 也就是说不会执行
+      command 
+      history :+= command _
+  }
+}
+
+Invoke.invoke(println("foo")
+Invoker.invoke {
+  println("bar1")
+  println("bar2")
+}
+```
+
+### 适配器模式
+
+```scala
+//interface we want to use
+trait Log {
+  def warning(msg)
+  def error(msg)
+}
+
+//existing interface we can use
+final class Logger {
+  def log(logLevel, msg)
+}
+
+implicit class LoggerToLogAdapter(logger: Logger) extends Log {
+  def warning = logger.log(WARNING, msg)
+}
+```
+
+### 策略模式
+
+```scala
+type Strategy = (Int, Int) => Int
+
+class Context(computer: Strategy) {
+  def use(a: Int, b: Int) {compute(a, b)}
+}
+
+val add: Strategy = _ + _
+val multiply: Strategy: Strategy = _ * _
+
+new Context(multiply).use(2, 3)
+```
+
+### 依赖注入
+
+好处不太明显
+
+```scala
+trait Repository {
+  def save(user: User)
+}
+
+trait DatabaseRepository extends Repository {
+	....
+}
+
+trait UserService {self: Repository => // requires repository
+    def create(user: User) save(user)
+}
+
+new UserService with DataBaseRepository
+```
+
+```java
+public interface Repository {
+  void save(User use);
+}
+
+public class DatabaseRepository implements Repository {...}
+
+public class UserService {
+  private final Repository repository;
+  
+  UserService(Repository repository) {
+	this.repository = repository;
+  }
+	
+  void create(User user) {
+    repository.save(user);
+  }
+}
+
+new UserService(new DataBaseRepository());
+```
+
+看不出太明显的好处
+
+### Decorator
+
+super + trait 混入
+
+```scala
+trait Buffering extends Outputstream {
+  abstract override def write(b: Byte) {
+    ////something
+    super.write(buffer)
+  }
+}
+
+new Fileoutputstream(foo.txt) with buffering
+```
+
+这里例子换成 Log 更好一些, 但是有一个缺点是 log 必须先继承 Outputstream 才好
+>>>>>>> 8e6db178be591b65e2cc2f613d57e946d7b0ccc1
