@@ -1,3 +1,11 @@
+---
+layout: post
+title: java collection
+categories: [web]
+description: java collection
+keywords: java collection
+---
+
 ## CopyOnWriteArrayList
 
 ```java
@@ -46,8 +54,7 @@ add Elements
             Object[] elements = getArray();
             int len = elements.length;
             if (index > len || index < 0)
-                throw new IndexOutOfBoundsException("Index: "+index+
-                                                    ", Size: "+len);
+                throw new IndexOutOfBoundsException("Index: " + index + ", Size: "+len);
             Object[] newElements;
             int numMoved = len - index;
             if (numMoved == 0)
@@ -55,8 +62,7 @@ add Elements
             else {
                 newElements = new Object[len + 1];
                 System.arraycopy(elements, 0, newElements, 0, index);
-                System.arraycopy(elements, index, newElements, index + 1,
-                                 numMoved);
+                System.arraycopy(elements, index, newElements, index + 1, numMoved);
             }
             newElements[index] = element;
             setArray(newElements);
@@ -77,14 +83,13 @@ add Elements
             else {
                 Object[] newElements = new Object[len - 1];
                 System.arraycopy(elements, 0, newElements, 0, index);
-                System.arraycopy(elements, index + 1, newElements, index,
-                                 numMoved);
+                System.arraycopy(elements, index + 1, newElements, index, numMoved);
                 setArray(newElements);
             }
             return oldValue;
         } finally {
             lock.unlock();
-        }}
+}}
 ```
 
 代码量还有很多, 不分析了

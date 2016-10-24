@@ -619,3 +619,148 @@ Facade f = new Facade();
 f.serveFood();
 ```
 
+### Command and Query Responsibility Segregation (CQRS) Pattern
+
+[12306 design](http://chuansong.me/n/2433036)
+
+Segregate operations that read data from operations that update data by using separate interfaces. 
+This pattern can maximize performance, scalability, and security; support evolution of the system over time 
+through higher flexibility; and prevent update commands from causing merge conflicts at the domain level.
+
+我觉得12306这样的业务场景，非常适合使用CQRS架构；因为首先它是一个查多写少、但是写的业务逻辑非常复杂的系统。
+所以，非常适合做架构层面的读写分离，即采用CQRS架构。而且应该使用数据存储也分离的CQRS。这样CQ两端才可以完全不需要顾及对方的问题，
+各自优化自己的问题即可。我们可以在C端使用DDD领域模型的思路，用良好设计的领域模型实现复杂的业务规则和业务逻辑。
+而Q端则使用分布式缓存方案，实现可伸缩的查询能力。
+
+通过 CQRS 架构，由于 CQ 两端是事件驱动的，当C端有任何状态变化，都会产生对应的事件去通知Q端，所以我们几乎可以做到Q端的准实时更新。
+同时由于 CQ 两端的完全解耦，Q 端我们可以设计多种存储，如数据库和缓存 (Redis等); 数据库用于线下维护关系型数据，缓存用户实时查询。
+数据库和缓存的更新速度相互不受影响，因为是并行的。对同一个事件，可以10台机器负责更新缓存，100台机器负责更新数据库。即便数据库的更新很慢，
+也不会影响缓存的更新进度。这就是 CQRS 架构的好处，CQ 的架构完全不同，且我们随时可以重建一种新的 Q 端存储.
+
+**Event Sourcing and CQRS**
+
+The CQRS pattern is often used in conjunction with the Event Sourcing pattern. CQRS-based systems use separate 
+read and write data models, each tailored to relevant tasks and often located in physically separate stores. 
+When used with Event Sourcing, the store of events is the write model, and this is the authoritative source of 
+information. The read model of a CQRS-based system provides materialized views of the data, typically as 
+highly denormalized views. These views are tailored to the interfaces and display requirements of the 
+application, which helps to maximize both display and query performance.
+
+Using the stream of events as the write store, rather than the actual data at a point in time, 
+avoids update conflicts on a single aggregate and maximizes performance and scalability. The events can 
+be used to asynchronously generate materialized views of the data that are used to populate the read store.
+
+When using CQRS combined with the Event Sourcing pattern, consider the following:
+
+* As with any system where the write and read stores are separate, systems based on this pattern are 
+  only eventually consistent. There will be some delay between the event being generated and the data 
+  store that holds the results of operations initiated by these events being updated.
+* The pattern introduces additional complexity because code must be created to initiate and handle events, 
+  and assemble or update the appropriate views or objects required by queries or a read model. The inherent 
+  complexity of the CQRS pattern when used in conjunction with Event Sourcing can make a successful 
+  implementation more difficult, and requires relearning of some concepts and a different approach to 
+  designing systems. However, Event Sourcing can make it easier to model the domain, and makes it easier 
+  to rebuild views or create new ones because the intent of the changes in the data is preserved.
+* Generating materialized views for use in the read model or projections of the data by replaying and 
+  handling the events for specific entities or collections of entities may require considerable processing 
+  time and resource usage, especially if it requires summation or analysis of values over long time periods, 
+  because all the associated events may need to be examined. This may be partially resolved by implementing 
+  snapshots of the data at scheduled intervals, such as a total count of the number of a specific action that 
+  have occurred, or the current state of an entity.
+
+```c#
+// Query interface
+namespace ReadModel {
+  public interface ProductsDao {
+    ProductDisplay FindById(int productId);
+    IEnumerable<ProductDisplay> FindByName(string name);
+    IEnumerable<ProductInventory> FindOutOfStockProducts();
+    IEnumerable<ProductDisplay> FindRelatedProducts(int productId);
+  }
+
+  public class ProductDisplay {
+    public int ID { get; set; }
+    public string Name { get; set; }
+    public string Description { get; set; }
+    public decimal UnitPrice { get; set; }
+    public bool IsOutOfStock { get; set; }
+    public double UserRating { get; set; }
+  }
+
+  public class ProductInventory {
+    public int ID { get; set; }
+    public string Name { get; set; }
+    public int CurrentStock { get; set; }
+  }
+}
+```
+
+```c#
+public interface Icommand {
+  Guid Id { get; }
+}
+
+public class RateProduct : Icommand {
+  public RateProduct() {
+    this.Id = Guid.NewGuid();
+  }
+  public Guid Id { get; set; }
+  public int ProductId { get; set; }
+  public int rating { get; set; }
+  public int UserId {get; set; }
+}
+
+API
+public interface ProductsDomain {
+  void AddNewProduct(int id, string name, string description, decimal price);
+  void RateProduct(int userId int rating);
+  void AddToInventory(int productId, int quantity);
+  void ConfirmItemsShipped(int productId, int quantity);
+  void UpdateStockFromInventoryRecount(int productId, int updatedQuantity);
+}
+```
+
+```c#
+public class ProductsCommandHandler : 
+    ICommandHandler<AddNewProduct>,
+    ICommandHandler<RateProduct>,
+    ICommandHandler<AddToInventory>,
+    ICommandHandler<ConfirmItemShipped>,
+    ICommandHandler<UpdateStockFromInventoryRecount> {
+  private readonly IRepository<Product> repository;
+
+  public ProductsCommandHandler (IRepository<Product> repository) {
+    this.repository = repository;
+  }
+
+  void Handle (AddNewProduct command) {
+    ...
+  }
+
+  void Handle (RateProduct command) {
+    var product = repository.Find(command.ProductId);
+    if (product != null) {
+      product.RateProuct(command.UserId, command.rating);
+      repository.Save(product);
+    }
+  }
+
+  void Handle (AddToInventory command) {
+    ...
+  }
+
+  void Handle (ConfirmItemsShipped command) {
+    ...
+  }
+
+  void Handle (UpdateStockFromInventoryRecount command) {
+    ...
+  }
+}
+```
+
+### Distributed Domain Driven Design Pattern
+
+[cqrs 总结与例子](http://www.hyperlambda.com/posts/cqrs-es-in-scala/)
+[github example](https://github.com/boldradius/akka-dddd-template#master)
+ 

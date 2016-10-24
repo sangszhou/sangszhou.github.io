@@ -1,5 +1,13 @@
-在真正开始写代码前，我们先来梳理下一个对象池需要完成哪些功能。
+---
+layout: post
+title: object pool
+categories: [java]
+description: java
+keywords: java, design
+---
 
+在真正开始写代码前，我们先来梳理下一个对象池需要完成哪些功能:
+    
 1. 如果有可用的对象，对象池应当能返回给客户端
 2. 客户端把对象放回池里后，可以对这些对象进行重用
 3. 对象池能够创建新的对象来满足客户端不断增长的需求
@@ -129,12 +137,10 @@ public class JDBCCOnnectionFactory implements ObjectFactory<Connection>
     String password
     
     Connection createNew
-        return DriverManager.getConnection(
-            connectionURL, username, password)
+        return DriverManager.getConnection(connectionURL, username, password)
 
 public static void main(String[] args)
-    Pool<Connection> pool = new BoundedBlockingPool<Connection>(10,
-        new JDBCConnectionValidator(),
+    Pool<Connection> pool = new BoundedBlockingPool<Connection>(10, new JDBCConnectionValidator(),
         new JDBCConnectionFactory)
     // do whatever you like
 ```
@@ -221,7 +227,8 @@ permits 已经被别人预约到未来的某个时间点了, 这个时候, 我�
 等多久才可以执行操作, wait(time) 等他醒来后可以直接执行操作, 和 permits 无关了, 下面是
 伪代码
 
-```acquire
+```java
+acquire
 void acquire(int permits)
     synchronized {
         // 计算可用的 permits
@@ -253,6 +260,101 @@ void acquire(int permits)
 
 只要把 nextExecTime 和 currentTime 放到 redis 中即可, 但是要注意锁的使用
 
-**yahoo 开源项目**
+**yahoo 开源 ratelimiter**
 
-[](https://yahooeng.tumblr.com/post/111288877956/cloud-bouncer-distributed-rate-limiting-at-yahoo)
+[link](https://yahooeng.tumblr.com/post/111288877956/cloud-bouncer-distributed-rate-limiting-at-yahoo)
+
+### ForkJoinTask 在 Scala 和 java 中的用法
+
+归并排序的并行算法
+
+```java
+public static long parSort(List<Integer> nums, int left, int right, int threshold) {
+
+　　if(right - left <= threshold) return Inversion.sort(nums, left, right);
+
+　　int mid = (right - left) /2 + left;
+
+ 
+　　ForkJoinTask<Long> leftTask = ForkJoinCom.scheduler.schedule(Void -> parSort(nums, left, mid, threshold));
+　　ForkJoinTask<Long> rightTask = ForkJoinCom.scheduler.schedule(Void -> parSort(nums, mid, right, threshold));
+
+　　long leftInversions = leftTask.join();
+　　long rightInversions = rightTask.join();
+ 
+
+　　long mergeInversions = Inversion.merge(numbers, left, mid, right);
+　　return leftInversions + rightInversions + mergeInversions;
+}
+```
+
+ForkJoin Utils 的写法
+
+```java
+public abstract class TaskScheduler {
+　　public abstract <T> ForkJoinTask<T> schedule(Function<Void, T> func);
+}
+
+public class DefaultTaskScheduler extends TaskScheduler {
+
+　　public <T> ForkJoinTask<T> schedule(Function<Void, T> func) {
+　　　　ForkJoinTask<T> task = new ForkJoinTask<T>() {
+　　　　　　protected T compute() { return func.apply(null); }
+　　　　};
+
+　　　　ForkJoinCom.pool.execute(task);
+　　　　return task;
+　　}}
+```
+
+scala 的写法
+
+```scala
+package object common {
+
+  val forkJoinPool = new ForkJoinPool
+
+  abstract class TaskScheduler {
+    def schedule[T](body: => T): ForkJoinTask[T]
+    
+    def parallel[A, B](taskA: => A, taskB: => B): (A, B) = {
+      val right: ForkJoinTask[B] = task {
+        taskB
+      }
+
+      // left 在当前线程执行, right 放到 ForkJoinPool 上执行
+      val left = taskA
+      (left, right.join())
+    }
+  }
+
+  class DefaultTaskScheduler extends TaskScheduler {
+    def schedule[T](body: => T): ForkJoinTask[T] = {
+
+      val t = new RecursiveTask[T] {
+        def compute = body
+      }
+
+      Thread.currentThread match {
+        // 如果当前线程就在 forkJoinPool 上, 就直接执行程序, 否则放到 forkJoinPool 上执行
+        case wt: ForkJoinWorkerThread =>
+          t.fork()
+        case _ =>
+          forkJoinPool.execute(t)
+      }
+      t
+    }
+  }
+
+  val scheduler =  new DynamicVariable[TaskScheduler](new DefaultTaskScheduler)
+
+  def task[T](body: => T): ForkJoinTask[T] = {
+    scheduler.value.schedule(body)
+  }
+
+  def parallel[A, B](taskA: => A, taskB: => B): (A, B) = {
+    scheduler.value.parallel(taskA, taskB)
+  }
+}
+```
+

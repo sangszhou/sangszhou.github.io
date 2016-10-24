@@ -106,6 +106,8 @@ dspl_dir="${new_dir%/*}"
 那么 dspl_dir 就是 /home/vdeadmin/dspl
 ```
 
+注意, 这里的 script 是一个变量, 而不是一个常量
+
 **Demo2: contains**
 
 不知道能不能用最大最小匹配
@@ -126,17 +128,26 @@ contains() {
 
 ### $ and more
 
-$? Exit status of last command
-
-$$ Process ID of shell
-
-$_ Name of last command.
-
-$# number of function arguments
-
-$@ 表示所有的参数，包括 command 本身，所以实际的参数应该是
-
-$*
+```
+$$ 
+Shell本身的PID（ProcessID） 
+$! 
+Shell最后运行的后台Process的PID 
+$? 
+最后运行的命令的结束代码（返回值） 
+$- 
+使用Set命令设定的Flag一览 
+$* 
+所有参数列表。如"$*"用「"」括起来的情况、以"$1 $2 … $n"的形式输出所有参数。 
+$@ 
+所有参数列表。如"$@"用「"」括起来的情况、以"$1" "$2" … "$n" 的形式输出所有参数。 
+$# 
+添加到Shell的参数个数 
+$0 
+Shell本身的文件名 
+$1～$n 
+添加到Shell的各参数值。$1是第1参数、$2是第2参数。 
+```
 
 ### find
 
@@ -150,7 +161,35 @@ find /home -user someone
 find . -size +12k
 ```
 
-### 数组操作
+### 数组操作 @todo
+
+缺少对数组的操作
+
+1. 数组定义
+
+```
+array[0]="a"
+ARRAY=(one two three)
+
+arr=(1 2 3 4 5) # 注意是用空格分开，不是逗号！！
+```
+
+2. 遍历数组
+
+```
+for var in ${ arr[@] }; do
+    echo $var
+done
+
+i=0
+while [ $i -lt ${ #array[@] } ]
+do
+    echo ${ array[$i] }
+    let i++
+done
+```
+
+3. 其他操作, 取值
 
 ```bash
 ARRAY=(one two three)
@@ -165,11 +204,33 @@ echo ${ARRAY[*]}
 cpArr=( ${ARRAY[@]} ) 必须是 @ 不能是 *, 必须加 ()
 ```
 
-对数组的循环?
-
-
-
 ### sed
+
+**sed1:** 选择性打印
+
+```
+sed -n '10p' file.txt
+sed -n ‘1,5p’ file.txt 打印出第 1 到第 10 行
+sed -n '/my/p' datafile
+```
+
+**sed2:** 数据搜寻和替换
+
+```
+sed -i -e “/akka.tcp/ s/127.0.0.1/$HOST_IP/“ poc.conf
+```
+
+**sed3:** 多重编辑
+
+```
+sed -e '1,10d' -e 's/My/Your/g' datafile
+```
+
+**sed4:** 选择性删除
+
+```
+sed -n ‘1,4d’ fileName.md 删除第 1 到第 4 行
+```
 
 p, d, 行数, 替换, 多重编辑, quite
 
@@ -259,6 +320,37 @@ sort -nrk9
 k9 表示按照第 9 列排序, -n 是把这一列当做数字来排序, -r 表示逆序排列, 大的值放前面
 
 ### awk
+
+**awk1:** 打印文件
+
+```
+awk '{print NF，NR，$0} END {print FILENAME}' temp
+```
+
+**awk2:** 找到 $pid 对应的 CPU, MEM 使用率
+
+```
+top -n 1 -b | awk -v "pid=$pid" '$1==pid {print $9}'
+```
+
+**awk3:** 显示当前目录名
+
+```
+echo $PWD | awk -F/ '{print $NF}'   显示当前目录名
+```
+
+**awk4:** tcp connections state
+
+```
+netstat -tn | awk '/^tcp/ {++S[$NF]}; END {for(a in S) { print a, S[a]}}'
+```
+
+**awk5:** if 的用法
+
+```
+awk '{if (NR>0 && $4~/Brown/) print $0}' temp  至少存在一条记录且包含Brown
+awk 'NR > 0 {print $2}'
+```
 
 问题:
 
