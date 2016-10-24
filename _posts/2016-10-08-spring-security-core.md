@@ -7,6 +7,24 @@ keywords: spring
 
 ## Spring security Architecture
 
+### 常用的数据结构和架构
+
+**AuthenticationManager** 
+
+**AccessDecisionManager**
+
+**ResourceServerTokenService & TokenStore**
+
+**TokenGrant**
+
+**RememberService**
+
+**AbstractSecurityInterceptor**
+
+**AfterInvocationManager** a lot like AuthenticationManager
+ 
+And SecurityMetaSource
+
 ### technique overview
 
 **Authentication in a Web Application**
@@ -91,6 +109,9 @@ Many other types of application (for example, a stateless RESTful web service) d
 sessions and will re-authenticate on every request. However, it is still important that the 
 SecurityContextPersistenceFilter is included in the chain to make sure that the SecurityContextHolder 
 is **cleared after each request**.
+
+SecurityContextPersistentFilter 有几个作用, 第一个是 SessionId -> HttpSession. 第二个是 RememberService 中, cookie
+到 Authentication 完成认证, 第三个是 clear SecurityContextHolder.
 
 ### Access-Control (Authorization) in Spring Security
 

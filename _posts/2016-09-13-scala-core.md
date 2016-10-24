@@ -499,4 +499,8 @@ It needs to at least support N producers and 1 consumer thread-safely.
 Lock-free MPSC linked queue implementation based on Dmitriy Vyukov's 
 non-intrusive [MPSC queue](http://www.1024cores.net/home/lock-free-algorithms/queues/non-intrusive-mpsc-node-based-queue)
 
+### private[this] and private
 
+private[this] (equivalent to protected[this]) means that that "y" is only visible to methods in 
+the same instance. For example, you could not reference y on a second instance in an equals 
+method, i.e., "this.y == that.y" would generate a compilation error on "that.y". 
