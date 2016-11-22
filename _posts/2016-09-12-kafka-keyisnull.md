@@ -492,8 +492,45 @@ def append(offset: Long, messages: ByteBufferMessageSet) {
 写入过程是 Log.append (index.append) <- LogSegment.append <- Partition.appendMessageToLeader, ReplicaManager <- appendToLocalLog
 
 
-Class 和作用
+Class 和作用 @todo
 
 ReplicaManager, PartitionManager, Partition, LogManager, Log, LogSegment, Controller, Coordinator
 
-这个明天再看吧
+**ReplicaManager***
+
+重要的成员，purgatory, highWaterMarkCheckpointThread, ReplicaFetcherManager, LogManager
+
+重要的函数 readFromLocalLog, appendToLocalLog, appendMessages, fetchMessages 操作委托给 LogManager, becameLeaderOrReplica, 响应
+controller 的消息
+
+**Replica**
+
+是 Log 的封装， 主要是用来返回 HW 和 LEO
+
+重要属性: replicaId, partition, highWaterMaker
+
+**LogManager**
+
+重要属性: RecoveryCheckpointFile
+
+重要函数: createLog, deleteLog
+
+**Log**
+
+重要的属性: LogSegments 记录所有的文件， 还有 Log folder
+
+重要函数: read, append, recoveryLog
+
+**LogSegment**
+
+重要属性: OffsetIndex, FileMessageSet, baseOffset
+
+重要函数: read, append, translateOffset, recovery
+
+和 log 差不多
+
+**Partition**
+
+重要成员: logManager, AR, ISR, ReplicaManager, LeaderReplica, controllerEpoch
+
+重要函数: appendMessageToLeader, makeLeader, makeFollower, tryCompleteDelayedFetchRequest, inreamentHW, updateISR

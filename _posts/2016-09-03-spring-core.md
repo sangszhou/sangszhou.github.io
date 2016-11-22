@@ -1,9 +1,30 @@
 ---
 layout: post
-title: spring code 
+title: spring code
 categories: [spring]
 keywords: spring
 ---
+
+
+### 什么是 AOP 更新
+
+AOP 的核心思想就是“将应用程序中的核心逻辑同对其提供支持的通用服务进行分离。” 这些通用服务可能是日志，权限认证等等。
+
+AOP( Aspect-OrientedProgramming, 面向方面编程), 可以说是OOP（Object-Oriented Programing，面向对象编程） 的补充和完善。OOP引入封装、继承和多态性等概念来建立一种对象层次结构用以模拟公共行为的一个集合。 它定义的是一个从上到下，从一般到特殊的层次结构。
+当我们需要为分散的对象引入公共行为的时候，OOP则显得无能为力。
+比如，日志代码往往水平地散布在所有对象层次中，而与它所散布到的对象的核心功能毫无关系。这种散布在各处的无关核心业务员的代码被称为横切（cross-cutting）代码，在OOP设计中，它导致了大量代码的重复，而不利于各个模块的重用。
+
+所谓“方面”，简单地说，就是将那些与业务无关，却为业务模块所共同调用的逻辑或责任封装起来，便于减少系统的重复代码，
+降低模块间的耦合度，并有利于未来的可操作性和可维护性。
+
+实现AOP的技术，主要分为两大类：一是采用动态代理技术，利用截取消息的方式，对该消息进行装饰，以取代原有对象行为的 执行；二是采用静态织入的方式，引入特定的语法创建“方面”，从而使得编译器可以在编译期间织入有关“方面”的代码。
+
+1. join point（连接点）：是程序执行中的一个精确执行点，例如类中的一个方法。它是一个抽象的概念，在实现AOP时，并不需要去定义一个join point。
+2. point cut（切入点）：本质上是一个捕获连接点的结构。在AOP中，可以定义一个point cut，来捕获相关方法的调用。
+3. advice（通知）：是point cut的执行代码，是执行“切面”的具体逻辑。
+4. aspect（切面）：point cut 和 advice 结合起来就是aspect，它类似于OOP中定义的一个类，但它代表的更多是对象间横向的关系。
+5. introduce（引入）：为对象引入附加的方法或属性，从而达到修改对象结构的目的。有的AOP工具又将其称为mixin。
+
 
 
 ## @todo 多态?
@@ -33,7 +54,7 @@ Bus运行时类型 实际运行是访问 heap 中的对象，调用实际的方�
 
 ### 强类型, 弱类型
 
-## 设计原则 
+## 设计原则
 [link](http://blog.jobbole.com/85529/)
 
 **开闭原则**
@@ -99,17 +120,17 @@ Software entities should be open for extension,but closed for modification.
 ```java
 public interface BeanFactory {
     String FACTORY_BEAN_PREFIX = "&";
-    
+
     Object getBean(String name) throws BeansException;
-    
+
     Object getBean(String name, class requiredType) throws BeansException;
-    
+
     boolean containsBean(String name);
-    
+
     boolen isSingleton(String name) throws NoSuchBeanDefinitionException;
-    
+
     Class getType(String name) throws NoSuchBeanDefinitionException;
-    
+
     String[] getAlias(String name)
 }
 ```
@@ -136,11 +157,11 @@ Bean 的解析就是对 spring 配置文件的解析, 这个解析过程主要�
 ```java
 public class XmlBeanFactory extends DefaultListenableFactory {
     private final XmlBeanDefinitionReader reader;
-    
+
     public XmlBeanFactory(Resource resource) throws BeanException {
         this(resource, null)
     }
-    
+
     public XmlBeanFactory(Resource resource, BeanFactory parent) {
         super(parent)
         this.reader = new XmlBeanDefinitionReader(this)
@@ -165,12 +186,12 @@ reader.loadBeanDefinitions(resource)
 ## 反射和动态代理
 
 ```java
- Class.forName() 
- 
+ Class.forName()
+
  Field field = Unsafe.class.getDeclaredField("theUnsafe")
  field.setAccessible(true)
  unsafe = (Unsafe) field.get(Unsafe.class);
- 
+
  Field[] fields = clazz.getDeclaredFields();
  Method[] methods = clazz.getDeclaredMethods();
  Class<?>[] clazzes = method.getParameterTypes();
@@ -185,7 +206,7 @@ reader.loadBeanDefinitions(resource)
 反射慢的原因有两个, 一个是找 class 文件可能花时间比较久, 另一个是无法使用 JIT 编译器优化反射操作
 
 1. 使用缓存, 能得到的 class 文件就重用
-2. 不要遍历 field, method 
+2. 不要遍历 field, method
 3. setAccessible(true) 可以省掉安全检查的时间
 
 ### Java 动态代理
@@ -211,7 +232,7 @@ CGLib创建的动态代理对象性能比JDK创建的动态代理对象的性能
 ```java
 public class BookFacadeCglib implements MethodInterceptor {  
     private Object target;  
-  
+
     public Object getInstance(Object target) {  
         this.target = target;  
         Enhancer enhancer = new Enhancer();  
@@ -220,7 +241,7 @@ public class BookFacadeCglib implements MethodInterceptor {
         enhancer.setCallback(this);  
         // 创建代理对象  
         return enhancer.create();  
-  
+
     // intercept 所有的函数
     public Object intercept(Object obj, Method method, Object[] args, MethodProxy proxy) {  
         System.out.println("事物开始");  
@@ -243,10 +264,10 @@ public class RealSubject implements Subject
 
 public class ProxyHandler implements Invocationhandler
     private Subject subject
-    
+
     public ProxyHandler(Subject subject)
         this.subject = subject
-    
+
     public Object invoke(Object proxy, Method method, Object[] args)
         println("Before method execution")
         Object result = method.invoke(subject, args)
@@ -257,10 +278,10 @@ public class DynamicProxyTest
     main(String args[])
         RealSubject realSubject = new RealSubject
         ProxyHandler proxyHandler = new ProxyHandler(realSubject)
-        
+
         Subject proxied = (Subject) Proxy.newProxyInstance(realSubject.class.getClassLoader, realSubject.getClass.getInterface
             proxyHandler)
-        
+
         proxied.request
 
 public static Object newProxyInstance(ClassLoader loader,
@@ -274,7 +295,7 @@ final class $Proxy1 extends Proxy implements Subject
     private $Proxy1
     public $Proxy1(InvocationHandler h)
         this.h = h
-    
+
     public int request(int i)
         Method method = Subject.class.getMethod("request", new Class[]{int.class})
         return (Integer)h.invoke(this, method, new Object[]{new Integer(i)})
@@ -298,10 +319,10 @@ public class JdkDynamicAopProxy implements AopProxy, InvocationHandler
     AdvisedSupport advised
     public JdkDynamicAopProxy(AdvisedSupport advised)
         this.advised = advised
-    
+
     public Object getProxy()
         return Proxy.newProxyInstance(getClass.getClassLoader, new Class[]{advised.getTargetSource.getTargetClass}, this)
-    
+
     public Object invoke(Object proxy, final Method method, Object[] args)
         MethodInterceptor methodInterceptor = advised.getMethodInterceptor
         return methodInterceptor.invoke(new ReflectiveMethodInvocation(advised.getTargetSource.getTarget, method, args)
@@ -315,7 +336,7 @@ public class JdkDynamicAopProxy implements AopProxy, InvocationHandler
 class AdvisedSupport  // bean
     TargetSource targetSource
     MethodInterceptor methodInterceptor
-    
+
 interface MethodInterceptor extends Interceptor
     Object invoke(MethodInvocation invocation)
 
@@ -346,7 +367,7 @@ dynamic proxy 创建新类的代码
 创建代码如下
 
     long num;
-    // 获得代理类数字标识 
+    // 获得代理类数字标识
 
    synchronized (nextUniqueNumberLock) {
      num = nextUniqueNumber ++;
@@ -384,7 +405,7 @@ public class AroundAdvice implements MethodInterceptor
         Object result = proxy.invokeSuper(target, new String[]())
         println("after..")
         return result
-        
+
 public class ChineseProxyFactory
     static chinese getAuthInstance
         Enhancer en = new Enhancer
@@ -407,7 +428,7 @@ public interface MethodInterceptor extends Callback {
 // General purpose AOP callback. Used when the target is dynamic or when the proxy is not frozen
 static class DynamicAdvisedInterceptor implements MethodInterceptor
     private final AdvisedSupport advised;
-    
+
         Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy)
             List<object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, target)
             if(chain.isEmpty && modified.isPublic(method.getModifier)
@@ -425,7 +446,7 @@ interface AopProxy
 class CglibAopProxy implements AopProxy
 	/** The configuration used to configure this proxy */
 	protected final AdvisedSupport advised;
-    
+
     public Object getProxy(ClassLoader classLoader) {
         Class<?> rootClass = this.advised.getTargetClass();
         Enhancer enhancer = createEnhancer();
@@ -451,18 +472,18 @@ Ans: BeanFactory is factory Pattern which is based on IOC design principles.it i
 BeanFactory factory = new XmlBeanFactory(new FileInputStream("beans.xml"));
 Or
 
-ClassPathResource resorce = new ClassPathResource("beans.xml"); 
+ClassPathResource resorce = new ClassPathResource("beans.xml");
 XmlBeanFactory factory = new XmlBeanFactory(resorce);
 ```
 
 ### Question 4: What are the difference between BeanFactory and ApplicationContext in spring? (answer) @todo
 
-ApplicationContext is the preferred way of using spring because of functionality provided by it and interviewer 
+ApplicationContext is the preferred way of using spring because of functionality provided by it and interviewer
 wanted to check whether you are familiar with it or not.
 
 ### Explain the Spring Bean-LifeCycle
 
-Ans: Spring framework is based on IOC so we call it as IOC container also So Spring beans reside inside the IOC container. 
+Ans: Spring framework is based on IOC so we call it as IOC container also So Spring beans reside inside the IOC container.
 Spring beans are nothing but Plain old java object (POJO).
 
 Following steps explain their life cycle inside the container.
@@ -485,24 +506,24 @@ Following steps explain their life cycle inside the container.
 7)  如果Bean 实现了InitializingBean 接口，Spring 将调用它们的afterPropertiesSet()接口方法． 类似地，如果Bean 使用init-method 声明了初始化方法，该方法也会被调用。
 8)  如果Bean 实现了BeanPostProcessor 接口， Spring 将调用它们的postPoressAfterInitilization方法．
 9)  此时此刻Bean 已经准备就绪．可以被应用程序使用了． 它们将一直驻留在应用上下文中．直到该应用上下文补销毁。
-10) 如果Bean实现了DisposableBean 接口，Spring 将调用它的destroy()接口方法。同样，如果Bean 使用destroy-method 声明了销毁方法，方法也会被调用。 
+10) 如果Bean实现了DisposableBean 接口，Spring 将调用它的destroy()接口方法。同样，如果Bean 使用destroy-method 声明了销毁方法，方法也会被调用。
 
 ### What is IOC or inversion of control? (answer)
-    
-As the name implies Inversion of control means now we have inverted the control of creating 
-the object from our own using new operator to container or framework. Now it’s the responsibility of container to create 
-an object as required. We maintain one XML file where we configure our components, services, all the classes and their 
-property. We just need to mention which service is needed by which component and container will create the object for us. 
+
+As the name implies Inversion of control means now we have inverted the control of creating
+the object from our own using new operator to container or framework. Now it’s the responsibility of container to create
+an object as required. We maintain one XML file where we configure our components, services, all the classes and their
+property. We just need to mention which service is needed by which component and container will create the object for us.
 This concept is known as dependency injection because all object dependency (resources) is injected into it by the framework.
 
 ```xml
-<bean id="createNewStock" class="springexample.stockMarket.CreateNewStockAccont"> 
+<bean id="createNewStock" class="springexample.stockMarket.CreateNewStockAccont">
         <property name="newBid"/>
 </bean>
 ```
 
-In this example, CreateNewStockAccont class contain getter and setter for newBid and container will 
-instantiate newBid and set the value automatically when it is used. This whole process is also called 
+In this example, CreateNewStockAccont class contain getter and setter for newBid and container will
+instantiate newBid and set the value automatically when it is used. This whole process is also called
 wiring in Spring and by using annotation it can be done automatically by Spring, refereed as auto-wiring of bean in Spring.
 
 ### Question 5: What are different modules in spring?
@@ -517,28 +538,28 @@ wiring in Spring and by using annotation it can be done automatically by Spring,
 
 ### Question 6: What is the difference between singleton and prototype bean? @todo
 
-Ans: This is another popular spring interview questions and an important concept to understand. 
+Ans: This is another popular spring interview questions and an important concept to understand.
 Basically, a bean has scopes which define their existence on the application
 
 **Singleton:** means single bean definition to a single object instance per Spring IOC container.
 
 **Prototype:** means a single bean definition to any number of object instances.
-Whatever beans we defined in spring framework are singleton beans. There is an attribute in bean tag named ‘singleton’ 
-if specified true then bean becomes singleton and if set to false then the bean becomes a prototype bean. 
+Whatever beans we defined in spring framework are singleton beans. There is an attribute in bean tag named ‘singleton’
+if specified true then bean becomes singleton and if set to false then the bean becomes a prototype bean.
 By default, it is set to true. So, all the beans in spring framework are by default singleton beans.
 
 
 ```xml
-<bean id="createNewStock"     class="springexample.stockMarket.CreateNewStockAccont" singleton=”false”> 
-        <property name="newBid"/> 
+<bean id="createNewStock"     class="springexample.stockMarket.CreateNewStockAccont" singleton=”false”>
+        <property name="newBid"/>
 </bean>
 ```
 
 ### Question 7: What type of transaction Management Spring support?
 
-Ans: This spring interview questions is little difficult as compared to previous questions just because 
-transaction management is a complex concept and not every developer familiar with it. 
-Transaction management is critical in any applications that will interact with the database. 
+Ans: This spring interview questions is little difficult as compared to previous questions just because
+transaction management is a complex concept and not every developer familiar with it.
+Transaction management is critical in any applications that will interact with the database.
 The application has to ensure that the data is consistent and the integrity of the data is maintained.  
 Following two type of transaction management is supported by spring:
 
@@ -634,7 +655,7 @@ around(环绕通知)：在方法调用前后触发的通知。
 
 1. 接口注入（interface injection） 接口注入指的就是在接口中定义要注入的信息，并通过接口完成注入。
 2. Set注入（setterinjection）Set注入指的就是在接受注入的类中定义一个Set方法，并在参数中定义需要注入的元素。
-3. 构造注入（constructor injection）构造注入指的就是在接受注入的类中定义一个构造方法，并在参数中定义需要注入的元素 
+3. 构造注入（constructor injection）构造注入指的就是在接受注入的类中定义一个构造方法，并在参数中定义需要注入的元素
 
 ### Spring应用上下文的有哪些
 
@@ -649,4 +670,3 @@ FileSystemXmlapplicationcontext在指定的文件系统路径下查找文件，
 ## 参考资料
 
 [Spring Interview Questions](http://ifeve.com/java-memory-model-0/)
-

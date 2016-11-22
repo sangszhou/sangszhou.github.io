@@ -5,6 +5,12 @@ categories: [nio]
 keywords: nio, java
 ---
 
+## FAQ
+
+1. SelectionKey all about
+2. Write(Message), Read() 怎么读写数据
+3. 连接怎么创建
+
 Java Nio 和 Netty 例子与原理
 
 有很强的套路性, 但是容易忘
@@ -65,7 +71,7 @@ def read(key: SelectionKey) {
     } else if(receive.complete) {
         val req = RequestChannel.Request(processor = id, requestKey = key,
             buffer = receive.buffer, startTimeMs = time.milliseconds, remoteAddress = address)
-            
+
         requestChannel.sendRequest(req) // 放到公共的 BlockingQueue 中, 待处理
         key.attach(null)
         key.interestOps(key.interestOps & (~SelectionKey.OP_READ))
@@ -94,9 +100,9 @@ def read(key: SelectionKey) {
       if(size <= 0)
         throw new InvalidRequestException("%d is not a valid request size.".format(size))
       if(size > maxSize)
-        throw new InvalidRequestException("Request of length %d is not valid, it is larger than the 
+        throw new InvalidRequestException("Request of length %d is not valid, it is larger than the
             maximum size of %d bytes.".format(size, maxSize))
-            
+
       contentBuffer = byteBufferAllocate(size)
     }
     // if we have a buffer read some stuff into it
@@ -118,9 +124,9 @@ def read(key: SelectionKey) {
 
 read write mode 的区别在于，read mode 的 limit 是 write mode 的 position
 
-When you write data into a buffer, the buffer keeps track of how much data you have written. 
-Once you need to read the data, you need to switch the buffer from writing mode into reading 
-mode using the flip() method call. In reading mode the buffer lets you read all the data written into the buffer. 
+When you write data into a buffer, the buffer keeps track of how much data you have written.
+Once you need to read the data, you need to switch the buffer from writing mode into reading
+mode using the flip() method call. In reading mode the buffer lets you read all the data written into the buffer.
 
 ```java
 public final Buffer flip() {
@@ -130,16 +136,16 @@ public final Buffer flip() {
     return this;}
 ```
 
-Once you have read all the data, you need to clear the buffer, to make it ready for writing again. 
-You can do this in two ways: By calling clear() or by calling compact(). The clear() method 
-clears the whole buffer. The compact() method only clears the data which you have already read. 
-Any unread data is moved to the beginning of the buffer, and data will now be written into 
+Once you have read all the data, you need to clear the buffer, to make it ready for writing again.
+You can do this in two ways: By calling clear() or by calling compact(). The clear() method
+clears the whole buffer. The compact() method only clears the data which you have already read.
+Any unread data is moved to the beginning of the buffer, and data will now be written into
 the buffer after the unread data.
 
 **rewind**
 
-The Buffer.rewind() sets the position back to 0, so you can reread all the 
-data in the buffer. The limit remains untouched, thus still marking how many 
+The Buffer.rewind() sets the position back to 0, so you can reread all the
+data in the buffer. The limit remains untouched, thus still marking how many
 elements (bytes, chars etc.) that can be read from theBuffer.
 
 ```java
@@ -148,4 +154,3 @@ public final Buffer rewind() {
     mark = -1;
     return this;}
 ```
-
