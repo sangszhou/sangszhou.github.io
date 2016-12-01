@@ -402,14 +402,16 @@ with Function 一般是用来接收 ```{xxx}``` 这种语法块的
 loan pattern 往往包括一个函数作为变量, 在函数体内创建资源, 资源作为函数的参数, 使用资源, 然后释放资源
 
 ```scala
-def writeFile(fileName: File)(operation: PrintWriter => Unit) { 
-    val writer = new PrintWriter(fileName)  // 贷出资源writer 
+def writeLock(operation: PrintWriter => Unit) { 
+    lock.lock() 
   
     try{ 
         operation(pw)   // 客户使用资源 
     }finally { 
         writer.close()  // 用完则释放被回收 
     } 
+    
+    lock.unlock();
 } 
 ```
 
@@ -478,6 +480,8 @@ object ComponentRegistry extends UserServiceComponent with UserRepositoryCompone
 这还有一个好处就是所有的对象都是 val 类型的。
 
 ### List fold left 的使用
+
+把一个数组中，大于 0 的分到一起，小于 0 的分到一起
 
 ```scala
 val result: (List[Int], List[Int]) = List(-1, 2, 3).foldLeft((List[Int](), List[Int]()))((b, a) => {
