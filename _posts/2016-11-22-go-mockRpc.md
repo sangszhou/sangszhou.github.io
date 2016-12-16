@@ -1,4 +1,53 @@
 
+
+## Golang 需要注意的点
+
+**channel 指针的方向问题**
+
+我以前以为 channel 的指针朝向是无关紧要的，只要管道的方向不同而已，但在最近写的代码中，我才发现自己的理解是错误的， channel 指针的朝向是很重要的
+
+考虑一个场景，某个节点向集群中的其他节点发送消息然后等待其他节点的返回，假如有超过一半的节点返回了，就标志这个消息的发送成功了，这个时候发送消息的节点不必等待剩下节点的返回，它可以退出了。这是一个典型的使用 channel 的场景，我最开始是这样写的
+
+```go
+for(node in cluster)
+    sendRpc(node, request, reply)
+    recv <- true
+
+while true
+    select {
+    case <-recv:
+        count ++
+        if(count > len/2)
+        return true
+    }
+```
+
+在后来的测试中，我发现这个写法并不严谨，因为后续的 reply 持续的返回但是 select 语句已经不再了，这意味着后续的返回都会 block 在 recv <- true 上，我知道 go routine 是协程不是线程，但是这种写法终究是不好的
+
+然后，我在 return 语句之前加上一个 close(recv) 希望后续的 reply 往一个 closed 管道里写东西，我觉得这样就应该没问题了。结果这次直接报错，因为 send msg to channel will panic
+
+后来看到一个 blog 中写道，往一个 closed 的 channel 中写东西是会异常的，但是从一个空的 channel 中拿东西会直接返回，且从空的 channel 中拿东西会返回两个值，第二个是 channel 的状态信息，有了这个保证，就可以写这样的代码了
+
+```go
+for(node in cluster)
+    sendRpc(node, request, reply)
+    <- recv
+
+while true
+    select {
+    case recv<-true:
+        count ++
+        if(count > len/2)
+        return true
+    case something<-true:
+        blabla
+    }
+```
+
+我对 select 的语法也不是很熟，我想会不会出现这种情况：系统阻塞在 something 上，我写了个测试，发现并不会这样，我觉得 golang 也不会傻到犯这种错，我认为这应该是正解了
+
+此外，为了寻找 channel 的替代品，我还尝试用了 waitGroup, 看了文档以后，我发现这个东西其实就是 countDownLatch, 初始时设置 waitGroup.Add(n) 表示需要调用 waitGroup.xxx 才能让 waitGroup.await 方法执行下去，对我自己的场景，waitGroup 并不好用
+
 ## Memory model in golang
 
 1: Within a single goroutine, the happens-before order is the order expressed by the program.
