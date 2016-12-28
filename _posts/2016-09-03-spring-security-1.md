@@ -111,6 +111,7 @@ Detects if there is no {@code Authentication} object in the
 
 ### ExceptionTranslationFilter
 
+```
 Handles any <code>AccessDeniedException</code> and <code>AuthenticationException</code>
 thrown within the filter chain.
 
@@ -129,9 +130,7 @@ that this may also switch the current protocol from http to https for an SSL log
 <li><tt>requestCache</tt> determines the strategy used to save a request during the
 authentication process in order that it may be retrieved and reused once the user has
 authenticated. The default implementation is {@link HttpSessionRequestCache}.
-
-
-
+```
 
 往往这个时候已经认证过了，它可以返回 403 Forbidden, 因为要访问的权限不足，或者弹出页面让用户登录
 
@@ -197,6 +196,7 @@ public interface SecurityFilterChain {
 	List<Filter> getFilters();
 }
 ```
+
 filterChain 是 url 与 filter 的对应关系
 
 ```java
