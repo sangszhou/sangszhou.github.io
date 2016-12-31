@@ -36,6 +36,11 @@ AuthenticationManager 的子类, 与 ProviderManager 平级)
 
 ## add more SSO client
 
+`update: 2016年12月28日 星期三`
+关于 SSO 的更多知识
+
+
+
 假设 oauth2 client 有多种 Oauth2ClientFilter 需要添加
 
 ```java
