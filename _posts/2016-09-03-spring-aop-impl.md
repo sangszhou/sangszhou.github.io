@@ -1,10 +1,9 @@
 ---
 layout: post
-title: spring code
+title: spring aop
 categories: [spring]
 keywords: spring
 ---
-
 
 ### 什么是 AOP 更新
 
@@ -135,10 +134,8 @@ public interface BeanFactory {
 }
 ```
 
-spring 提供了很多 IOC 的实现, 比如 XmlBeanFactory, ClasspathXmlApplicationContext 等,
-其中 XmlBeanFactory 就是针对最基本的 IOC 容器, 这个 IOC 容器可以读取 XML 文件定义的 BeanDefinition,
-
-ApplicationContext 是 spring 提供的一个高级 IOC 容器, 他除了能够提供 IOC 容器的基本功能以外, 还为用户
+spring 提供了很多 IOC 的实现, 比如 XmlBeanFactory, ClasspathXmlApplicationContext, AnnotationApplicationContext 等,
+其中 XmlBeanFactory 就是针对最基本的 IOC 容器, 这个 IOC 容器可以读取 XML 文件定义的 BeanDefinition, AnnotationApplicationContext 提供的 ApplicationContext 是 spring 提供的一个高级 IOC 容器, 他除了能够提供 IOC 容器的基本功能以外, 还为用户
 提供了以下的附加服务。
 
 1. 支持信息源, 可以实现国际化 (MessageSource) 接口
@@ -585,6 +582,35 @@ bean默认的scope属性是 ’singleton‘。
 Spring框架中的单例beans不是线程安全的
 
 bean标签有两个重要的属性(init-method 和 destroy-method)，你可以通过这两个属性定义自己的初始化方法和析构方法。
+
+Update: when preDestroy is implemented
+
+three ways to add pre destroy method
+
+```java
+@PreDestroy tag
+
+destroy-method in xml
+
+DisposableBean interface as stated above
+```
+
+
+BeanFactory 关闭的时候似乎就会调用 preDestroy 方法
+
+```java
+public static void main(String[] args) {
+    ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("spring.xml");
+	System.out.println("Spring Context initialized");
+		
+	//MyEmployeeService service = ctx.getBean("myEmployeeService", MyEmployeeService.class);
+	EmployeeService service = ctx.getBean("employeeService", EmployeeService.class);
+	System.out.println("Bean retrieved from Spring Context");	
+	System.out.println("Employee Name="+service.getEmployee().getName());
+	ctx.close();
+	System.out.println("Spring Context Closed");
+}
+```
 
 Spring也有相应的注解：@PostConstruct 和 @PreDestroy
 

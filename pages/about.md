@@ -1,7 +1,7 @@
 ---
 layout: page
 title: About
-description: 与时间赛跑
+description: 慢慢来
 keywords: xinszhou
 comments: true
 menu: 关于

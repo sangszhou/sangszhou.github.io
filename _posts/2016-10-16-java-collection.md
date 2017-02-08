@@ -211,7 +211,7 @@ class SkipList< T extends Comparable<? super T> implements SkippableList<T> {
 
 ### ConcurrentLinkedQueue & ConcurrentLinkedDeque
 
-它的实现全靠 CAS 操作，put 和 poll 操作都看不太明白
+ConcurrentLinkedQueue 的实现形式就和 CAS 那一篇文章写得差不多
 
 ConcurrentLinkedQueue 在本小节后都称为 CLQ。clq 的源码中提到了 garbage free 的问题，那一点似乎很重要，但是还是看不太明白
 

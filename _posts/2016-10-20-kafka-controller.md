@@ -222,12 +222,16 @@ def checkEnoughReplicasReachOffset(requiredOffset: Long): (Boolean, Short) = {
 Broker失败后Controller端的处理步骤如下：
 
 - 从ZK中读取现存的brokers
-- broker宕机，会引起partition的Leader或ISR变化，获取在在这个broker上的partitions：set_p
+- broker宕机，会引起partition的Leader或ISR变化，获取在在这个broker上的partitions：SET_PARTITION
 - 对set_p的每个Partition P
-3.1 从ZK的leaderAndISR节点读取P的当前ISR
-3.2 决定P的新Leader和新ISR（优先级分别是ISR中存活的broker，AR中任意存活的作为Leader）
-3.3 将P最新的leader，ISR，epoch回写到ZK的leaderAndISR节点
-- 将set_p中每个Partition的LeaderAndISR指令（包括最新的leaderAndISR数据）发送给受到影响的brokers
+
+    3.1 从ZK的leaderAndISR节点读取P的当前ISR
+    
+    3.2 决定P的新Leader和新ISR（优先级分别是ISR中存活的broker，AR中任意存活的作为Leader）
+    
+    3.3 将P最新的leader，ISR，epoch回写到ZK的leaderAndISR节点
+    
+- 将SET_PARTITION中每个Partition的LeaderAndISR指令（包括最新的leaderAndISR数据）发送给受到影响的brokers
 
 ```scala
 case class LeaderAndIsr(var leader: Int, var leaderEpoch: Int, var isr: List[Int], var zkVersion: Int)
