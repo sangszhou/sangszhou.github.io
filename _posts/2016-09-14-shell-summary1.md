@@ -96,6 +96,8 @@ Output that would normally go to the terminal goes to a file called `nohup.out` 
 %   <- 最小匹配
 ```
 
+匹配到的字符会被删掉
+
 **Demo1**
 
 ```
@@ -103,7 +105,7 @@ new_dir="${script_dir%/*}"
 dspl_dir="${new_dir%/*}"
 
 假设 script_dir = /home/vdeadmin/dspl/scripts
-那么 dspl_dir 就是 /home/vdeadmin/dspl
+那么 dspl_dir 就是 /home/vdeadmin
 ```
 
 注意, 这里的 script 是一个变量, 而不是一个常量
