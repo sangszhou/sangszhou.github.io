@@ -75,6 +75,8 @@ meta 从哪获取的数据呢？
 
 ### RememberMeAuthenticationFilter
 
+这个内容在别的地方也有写，RememberMeAuthenticationFilter 的具体实现形式
+
 Detects if there is no {@code Authentication} object in the {@code SecurityContext},
 and populates the context with a remember-me authentication token if a
 {@link RememberMeServices} implementation so requests.
@@ -111,6 +113,7 @@ Detects if there is no {@code Authentication} object in the
 
 ### ExceptionTranslationFilter
 
+```
 Handles any <code>AccessDeniedException</code> and <code>AuthenticationException</code>
 thrown within the filter chain.
 
@@ -129,9 +132,7 @@ that this may also switch the current protocol from http to https for an SSL log
 <li><tt>requestCache</tt> determines the strategy used to save a request during the
 authentication process in order that it may be retrieved and reused once the user has
 authenticated. The default implementation is {@link HttpSessionRequestCache}.
-
-
-
+```
 
 往往这个时候已经认证过了，它可以返回 403 Forbidden, 因为要访问的权限不足，或者弹出页面让用户登录
 
@@ -197,6 +198,7 @@ public interface SecurityFilterChain {
 	List<Filter> getFilters();
 }
 ```
+
 filterChain 是 url 与 filter 的对应关系
 
 ```java
@@ -412,6 +414,32 @@ public Authentication authenticate(Authentication authentication) throws Authent
 
 
 ## Oauth2 SSO 实现流程
+
+Update: 2017年01月25日 星期三
+
+实现原理：
+
+[useful link](https://spring.io/guides/tutorials/spring-boot-oauth2/#_social_login_simple)
+
+界面上有一个按钮是使用 Github 登录，点击以后需要用户输入账号密码，这是因为这个 link 指向的是 github/me 这种 url, 因为用户之前没有登录，所以报错，spring catch 住错误，转到 github 的 oauth2/ link, 然后提示用户输入用户名和密码，用户输入以后，就会执行 oauth2 那一套东西。用户登录成功以后，就拿到了 token, 把 token 放到 cookie, 下次再访问 /me 就能直接拿到用户信息了，这有点像 openid 和 oauth2 的结合体。
+这样就能一直有效了，注意这个过程可能需要用户手动点击一下确认（一直需要吗？应该就申请 token 的时候需要，其他时候都不需要了）
+
+```
+security:
+  oauth2:
+    client:
+      clientId: 233668646673605
+      clientSecret: 33b17e044ee6a4fa383f46ec6e28ea1d
+      accessTokenUri: https://graph.facebook.com/oauth/access_token
+      userAuthorizationUri: https://www.facebook.com/dialog/oauth
+      tokenName: oauth_token
+      authenticationScheme: query
+      clientAuthenticationScheme: form
+    resource:
+      userInfoUri: https://graph.facebook.com/me
+```
+
+然后 token 是怎么存放的？
 
 [link](/ws/github/tut-spring-boot-oauth2)
 

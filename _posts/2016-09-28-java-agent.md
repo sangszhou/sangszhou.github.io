@@ -1,9 +1,67 @@
 ---
 layout: post
-title: java agent
+title: java agent and aspectj
 categories: [java]
 keywords: agent, java
 ---
+
+## aspectj
+
+下面介绍了如何使用 BTrace 动态替换 .class 文件, 其实我们也可以手动替换 .class 文件，而 aspectj 就是这么一个工具，可以用来在 compile 或者 runtime 替换文件
+
+先说 runtime, runtime 是指一个正在运行的进程或者将要进行的进程，这个进程是一个 java 程序，但是它并不在我们的管辖范围内，比如一个 hadoop server 程序不受我们管控，或者 `hadoop fs -l` 命令对应的 hadoop client, 它是一个 jar 但是并不是我们程序所依赖的东西。这个时候，只能使用 runtime swap. 实现方法是先写一个 interceptor.jar, jar 中有一个 aspect 文件指明要替换的方法，类型和织入的代码，把这个 jar 包和 aspectj-weaver.jar 放到 Classpath 下，当 hadoop-client.jar 执行的时候就会调用 aspectj-weaver 这个执行引擎并调用 inteceptor.jar 中织入的代码。这个过程可能说的不对或者有遗漏的地方
+
+创建 jar, 指定搜寻 class 文件的范围: aop-ajc.xml 并发送到远端服务器
+
+```xml
+<aspectj>
+	<aspects>
+		<aspect name="hadoop.FileSystemInterceptor"/>
+	</aspects>
+
+	<weaver options="-warn:none -Xlint:default Xlint:ignore -Xset:weaveJavaxPackages=true -Xset:weaveJavaPackages=true">
+		<!-- <exclude within="org.apache.hadoop.conf..*">
+		<exclude within="org.apache.hadoop.crypto..*">
+		<exclude within="org.apache.hadoop.ha..*">
+		<exclude within="org.apache.hadoop.http..*">
+		<exclude within="org.apache.hadoop.io..*">	
+		<exclude within="org.apache.hadoop.ipc..*">
+		<exclude within="org.apache.hadoop.jmx..*">
+		<exclude within="org.apache.hadoop.log..*">
+		<exclude within="org.apache.hadoop.metrics..*">
+		<exclude within="org.apache.hadoop.metrics2..*">
+		<exclude within="org.apache.hadoop.net..*">	
+		<exclude within="org.apache.hadoop.record..*">
+		<exclude within="org.apache.hadoop.security..*">
+		<exclude within="org.apache.hadoop.service..*">			
+		<exclude within="org.apache.hadoop.tools..*">
+		<exclude within="org.apache.hadoop.tracing..*">
+		<exclude within="org.apache.hadoop.util.*."> -->
+
+		<!-- <include within="org.apache.hadoop.fs.*"/>
+		<include within="org.apache.hadoop.fs.shell.*"/> -->
+		<include within="com.mapr.fs..*"/>
+	</weaver>	
+</aspectj>
+```
+
+```
+使用 aspectj 编译 jar
+
+ajc -1.7 -d bin -cp $CLASSPATH:/ws/aspectj/src/lib/jackson-annotations-2.1.2.jar:/ws/aspectj/src/lib/com.fasterxml.jackson.core.jar:/ws/aspectj/src/lib/com.fasterxml.jackson.databind.jar:/ws/aspectj/src/lib/hadoop-common-2.7.0.jar:/ws/aspectj/src/lib/ezmorph-1.0.6.jar:/ws/aspectj/src/lib/json-lib-2.4-jdk15.jar:/ws/aspectj/src/lib/httpclient-4.5.2.jar:/ws/aspectj/src/lib/httpcore-4.4.4.jar:/ws/aspectj/src/lib/jackson-core-asl-1.8.5.jar:/ws/aspectj/src/lib/jackson-mapper-asl-1.8.5.jar:/ws/aspectj/src/lib/commons-beanutils-1.9.2.jar:/ws/aspectj/src/lib/commons-collections4-4.1.jar:/ws/aspectj/src/lib/commons-lang3-3.4.jar:/ws/aspectj/src/lib/commons-logging-1.2.jar src/utils/HadoopEvent.java src/hadoop/FileSystemInterceptor.java -outxml -outjar HadoopMonitorProxyClient.jar
+
+
+jar uvf HadoopMonitorProxyClient.jar META-INF/aop-ajc.xml
+
+scp HadoopMonitorProxyClient.jar vdeadmin@host1:/users/vdeadmin/hdfs_open_hook/HadoopMonitorProxy
+
+```
+
+**compile-time weaver**
+
+当我们的程序本身一个单独 run 的东西时，就使用 compile time 织入，它的实现方式是替换 class 文件，可以在 target 文件夹下查看 class 文件被修改后的样子
+
+在我的 gitlab 上有例子
 
 ## Overview
 

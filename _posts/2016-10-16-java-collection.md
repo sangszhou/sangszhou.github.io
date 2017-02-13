@@ -208,3 +208,76 @@ class SkipList< T extends Comparable<? super T> implements SkippableList<T> {
 
 ```
 
+
+### ConcurrentLinkedQueue & ConcurrentLinkedDeque
+
+ConcurrentLinkedQueue 的实现形式就和 CAS 那一篇文章写得差不多
+
+ConcurrentLinkedQueue 在本小节后都称为 CLQ。clq 的源码中提到了 garbage free 的问题，那一点似乎很重要，但是还是看不太明白
+
+ConcurrentLinkedDeque 比 clq 复杂的多，因为 cld 允许两头都可以任意的添加删除元素，所以它是一个双向队列
+
+虽然大部分源码看不懂，但是 Node 的操作应该需要理解
+
+```java
+    static final class Node<E> {
+        volatile Node<E> prev;
+        volatile E item;
+        volatile Node<E> next;
+
+        Node() {  // default constructor for NEXT_TERMINATOR, PREV_TERMINATOR
+        }
+
+        /**
+         * Constructs a new node.  Uses relaxed write because item can
+         * only be seen after publication via casNext or casPrev.
+         */
+        Node(E item) {
+            UNSAFE.putObject(this, itemOffset, item);
+        }
+
+        boolean casItem(E cmp, E val) {
+            return UNSAFE.compareAndSwapObject(this, itemOffset, cmp, val);
+        }
+
+        void lazySetNext(Node<E> val) {
+            UNSAFE.putOrderedObject(this, nextOffset, val);
+        }
+
+        boolean casNext(Node<E> cmp, Node<E> val) {
+            return UNSAFE.compareAndSwapObject(this, nextOffset, cmp, val);
+        }
+
+        void lazySetPrev(Node<E> val) {
+            UNSAFE.putOrderedObject(this, prevOffset, val);
+        }
+
+        boolean casPrev(Node<E> cmp, Node<E> val) {
+            return UNSAFE.compareAndSwapObject(this, prevOffset, cmp, val);
+        }
+
+        // Unsafe mechanics
+
+        private static final sun.misc.Unsafe UNSAFE;
+        private static final long prevOffset;
+        private static final long itemOffset;
+        private static final long nextOffset;
+
+        static {
+            try {
+                UNSAFE = sun.misc.Unsafe.getUnsafe();
+                Class<?> k = Node.class;
+                prevOffset = UNSAFE.objectFieldOffset
+                    (k.getDeclaredField("prev"));
+                itemOffset = UNSAFE.objectFieldOffset
+                    (k.getDeclaredField("item"));
+                nextOffset = UNSAFE.objectFieldOffset
+                    (k.getDeclaredField("next"));
+            } catch (Exception e) {
+                throw new Error(e);
+            }
+        }
+    }
+```
+
+此外，需要注意 ConcurrentLinkedQueue 中的 head, tail 都是 volatile 的

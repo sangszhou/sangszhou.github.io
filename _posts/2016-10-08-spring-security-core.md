@@ -140,13 +140,13 @@ AbstractSecurityInterceptor provides a consistent workflow for handling secure o
 
 **What are Configuration Attributes?**
 
-A "configuration attribute" can be thought of as a String that has special meaning to the classes used by AbstractSecurityInterceptor.
+A "configuration attribute" can be thought of as a **String** that has special meaning to the classes used by AbstractSecurityInterceptor.
 
 They are represented by the **interface ConfigAttribute** within the framework.
 They may be simple **role names** or have more complex meaning, depending on the 
 how sophisticated the AccessDecisionManager implementation is.
 
-The AbstractSecurityInterceptor is configured with a SecurityMetadataSource which it uses to look 
+The AbstractSecurityInterceptor is configured with a **SecurityMetadataSource** which it uses to look 
 up the attributes for a secure object. Usually this configuration will be hidden from the user.
 
 Configuration attributes will be entered as annotations on secured methods or as access attributes on secured URLs. 
