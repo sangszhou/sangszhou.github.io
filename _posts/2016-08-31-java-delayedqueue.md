@@ -12,7 +12,7 @@ keywords: java, concurrent, blockingQueue
 2. DelayedQueue 和 Blocking queue 一起写, 并总结子类的用途
 
 
-###FAQ 
+### FAQ 
 
 **新加入元素的的 delay 比老元素更小怎么办?**
 

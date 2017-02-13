@@ -1,0 +1,170 @@
+ThreadPool & FutureTask  keynotes
+
+[1] ThreadPool 的继承链
+[2] ThreadPool 的接口和实现 (FutureTask 相关的东西)
+[3] ThreadPool 的工作原理
+[4] ThreadPool 的子类
+
+继承关系
+Executor -> ExecutorService -> AbstractExecutorService -> ThreadPoolExecutor
+
+ThreadPool 的参数有 coreSize, maxSize, queue, ThreadFactory 和 KeepAliveTime, TimeUnit
+
+接口有两个，一个是 submit 一个是 execute 其中 submit 的参数是 callable 或者 runnable 加上一个 object, ,返回值是 Future. execute 的参数是 Runnable, 返回值是 Void.
+
+execute 的执行过程，判断当前线程池中的线程数是否小于 core_size, 假如小于，那么就直接创建这个线程，并把 runnable 任务作为此线程的首个任务，启动线程。假如大于，那么再查看 queue size 是否小于最大值，假如小于，那么把 runnable 对象放到 queue 中，等待空闲的线程执行，否者进入第三步判断，第三步判断的是线程的大小是否最大线程数，假如小于，就创建线程，否则调用 reject 逻辑。
+
+工作线程 Worker 是对线程的封装，假如它初始化时有任务在身，就直接执行任务，然后会等待在线程池的 Queue 上，假如有的任务的话就继续执行，否则长期等待。对于那些 core size 的线程，它是没有 timeout 时间的，但是别的线程会有一个 timeout 时间，如果 timeout 了，这些线程会被回收。
+
+submit 方法比 execute 方法稍微难一些，在调用 submit 方法后，线程池会根据参数创建 FutureTask 对象，该对象的 run 方法就是 runnable 的方法，还有一个 result, 用来存储 run 执行的结果。
+
+FutureTask 继承 Future, 调用 FutureTask.get 方法的线程会被 unsafe.park 并挂在阻塞队列上，等 Result 完成后会被唤醒。
+
+ThreadPool 有一个子类 ScheduledThreadPool, 它可以用于存放一些定时任务，这些定时任务必须继承 Delay 接口，因为这些接口才有时间 compare 函数。 FutureTask 有一个方法，当这个方法完成后不会把 FutureTask 的状态设置成 Completed, 这个方法只会被 ScheduledThreadPool 调用。 ？？？
+
+ThreadPool 可以通过 Executors 的静态方法创建，其他的还有 FixedThreadPool, SingletonThreadPool, WorkStealingThreadPool 以及 ???
+
+有一个 ThreadPool 的 queue 是 synchrousQueue, put 线程会等待，直到某一个线程 get 了这个函数
+
+
+
+
+
+---------------------
+CAS
+
+How to get the unsafe object from code
+
+Method1: From method,
+Method2: From constructor? 
+
+What's in details. How to it in details. 写一个 CAS 的例子。
+
+Unsafe 提供的操作
+
+unsafe.compareAndSwap
+unsafe.park
+unsafe.parkNano(2000)
+
+
+CAS example
+[1] Atomic Integer
+[2] Lock free stack
+[3] Lock free list
+
+class AtomicInteger {
+	volatile int value;
+
+	public void add(int more) {
+		int oldValue = this.value;
+		while(!unsafe.compareAndSwap(this, offset, oldValue, oldValue+more)) {
+			oldValue = this.value;
+		}
+	}
+
+}
+
+class LockFreeStack<T> {
+	// top -> n1 -> n2 -> n3
+	volatile ListNode<T> top;
+
+	public T void push(T e) {
+		ListNode<T> newTop = new ListNode<T>(e);
+
+		ListNode<T> oldTop = this.top;
+		// 这里修改的新节点的指针，和老的数据结构没有关系
+		newTop.next = oldTop;
+
+		while(!unsafe.compareAndSwap(this, offset, oldTop, newTop)) {
+			oldTop = this.top;
+			newTop.next = oldTop;
+		}	
+
+	}
+
+	public T void T pop() {
+		if(top == null) return null;
+
+		ListNode<T> oldTop = this.top;
+		ListNode<T> newTop = oldTop.next();
+
+		while(!unsafe.compareAndSwap(this, offset, oldTop, newTop)) {
+			oldTop = this.top();
+			if(oldTop == null) 
+				return null;
+			newTop = oldTop.next();
+		}
+	}
+}
+
+As always, lock free stack and Atomic is very simple to use, the really hard one is lock free list
+
+// Queue 怎么初始化？
+// head -> n1 -> n2 -> tail
+// queue 的难点在于 tail 操作，head 操作总是安全的，但是 tail 操作是不安全的，因为它要修改原始 Queue 的指针
+
+class LockFreeQueue<T> {
+	AtomicReference<ListNode<T>> head;
+	AtomicReference<ListNode<T>> tail;
+
+	public LockFreeQueue() {
+		head = new AtomicRefernce<ListNode<T>(new ListNode<T>);
+		tail = head;
+	}
+
+	
+	// append to tail, poll from head
+	// the hard part, we can not change the tail until it's safe to do so
+	// 这是一个错误的 append 方法，考虑两个线程同时走到 [1] 处，然后又一个线程成功完成了一个 cas 操作
+	// 那个另外一个线程设置 next 函数时设置的 next 节点有可能已经被加进去了
+	public T void append1(T e) {
+		ListNode<T> newNode = new ListNode<T>(e);
+		ListNode<T> oldTail = this.tail;
+		oldTail.next = newNode; [1]
+
+		while(!oldTail.compareAndSwap(this.tail.get(), newNode)) {
+			oldTail = this.tail;
+			oldTail.next = newNode;
+		}
+
+	}
+
+	// 这个版本没有解决第一个线程 dead 的情况
+	public T void append2(T e) {
+		ListNode<T> newNode = new ListNode<T>(e);
+		ListNode<T> oldTailNext = this.tail.get.next();
+
+		while(oldTailNext == null && !oldTailNext.compareAndSwap(this.tail.get, newNode)) {
+			oldTailNext = this.tail.next();
+		}
+
+		// what if last thread failed here?
+		this.tail.compareAndSwap(this.tail.get, newNode);
+	}
+
+	// 这个是正解，写的不够优雅。java concurrent 那个 post 明确说出了为什么必要要这样写
+	public T void append(T e) {
+		ListNode<T> newNode = new ListNode<T>(e);
+		ListNode<T> oldTailNext = this.tail.get.next();
+
+		while(true) {
+			if (oldTailNext != null) {
+				tail.compareAndSwap(this.tail.get, oldTailNext);
+			} else {
+				if(oldTailNext.compareAndSwap(this.tail.get.next, newNode)) {
+					tail.compareAndSwap(this.tail.get, newNode);
+					break;
+				} else {
+					oldTailNext = this.tail.next
+				}
+			}
+		}
+	}
+
+	// poll 就简单了，和 Stack 相同
+	public T poll() {
+
+	}
+
+
+}

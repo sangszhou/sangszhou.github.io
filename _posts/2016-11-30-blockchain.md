@@ -6,6 +6,281 @@ description: block chain
 keywords: blockchain
 ---
 
+**Update: 2017年02月13日 星期一**
+
+**第一个钱是从哪来的**
+
+2009年比特币诞生的时候，每笔赏金是50个比特币。诞生10分钟后，第一批50个比特币生成了，而此时的货币总量就是50。随后比特币就以约每10分钟50个的速度增长。当总量达到1050万时(2100万的50%)，赏金减半为25个。当总量达到1575万(新产出525万，即1050的50%)时，赏金再减半为12.5个。
+
+**一次交易的数据结构是什么样子的**
+
+
+
+```
+public class Transaction {
+	private byte[] hash;
+    private ArrayList<Input> inputs;
+
+    // outputs 的序号就在这里了
+    private ArrayList<Output> outputs;
+    private boolean coinbase;
+
+    public class Input {
+        /**
+         * hash of the Transaction whose output is being used
+         */
+        public byte[] prevTxHash;
+        /**
+         * used output's index in the previous transaction
+         */
+        public int outputIndex;
+        /**
+         * the signature produced to check validity
+         */
+        public byte[] signature;
+
+        public Input(byte[] prevHash, int index) {
+            if (prevHash == null)
+                prevTxHash = null;
+            else
+                prevTxHash = Arrays.copyOf(prevHash, prevHash.length);
+            outputIndex = index;
+        }
+
+        public void addSignature(byte[] sig) {
+            if (sig == null)
+                signature = null;
+            else
+                signature = Arrays.copyOf(sig, sig.length);
+        }
+
+        public boolean equals(Object other) {
+            if (other == null) {
+                return false;
+            }
+            if (getClass() != other.getClass()) {
+                return false;
+            }
+
+            Input in = (Input) other;
+
+            if (prevTxHash.length != in.prevTxHash.length)
+                return false;
+            for (int i = 0; i < prevTxHash.length; i++) {
+                if (prevTxHash[i] != in.prevTxHash[i])
+                    return false;
+            }
+            if (outputIndex != in.outputIndex)
+                return false;
+            if (signature.length != in.signature.length)
+                return false;
+            for (int i = 0; i < signature.length; i++) {
+                if (signature[i] != in.signature[i])
+                    return false;
+            }
+            return true;
+        }
+
+        public int hashCode() {
+            int hash = 1;
+            hash = hash * 17 + Arrays.hashCode(prevTxHash);
+            hash = hash * 31 + outputIndex;
+            hash = hash * 31 + Arrays.hashCode(signature);
+            return hash;
+        }
+    }
+
+
+    public class Output {
+        /**
+         * value in bitcoins of the output
+         */
+        public double value;
+        /**
+         * the address or public key of the recipient
+         */
+        public PublicKey address;
+
+        public Output(double v, PublicKey addr) {
+            value = v;
+            address = addr;
+        }
+
+        public boolean equals(Object other) {
+            if (other == null) {
+                return false;
+            }
+            if (getClass() != other.getClass()) {
+                return false;
+            }
+
+            Output op = (Output) other;
+
+            if (value != op.value)
+                return false;
+            if (!((RSAPublicKey) address).getPublicExponent().equals(
+                    ((RSAPublicKey) op.address).getPublicExponent()))
+                return false;
+            if (!((RSAPublicKey) address).getModulus().equals(
+                    ((RSAPublicKey) op.address).getModulus()))
+                return false;
+            return true;
+        }
+
+        public int hashCode() {
+            int hash = 1;
+            hash = hash * 17 + (int) value * 10000;
+            hash = hash * 31 + ((RSAPublicKey) address).getPublicExponent().hashCode();
+            hash = hash * 31 + ((RSAPublicKey) address).getModulus().hashCode();
+            return hash;
+        }
+    }
+
+}
+```
+
+![](/images/posts/bigdata/blockchain.png)
+
+**矿机，旷工是干什么的**
+
+一个交易完成后，客户端会把 Transaction 信息发送到网络中，矿机收到这些 TX 后会做两件事情，第一件事是验证 Transaction 的有效性，第二件事是把多个 TX 打成包，成为一个 Block，并为这个 Block 生成一个 nonce，使得 Block ID + nonce 进行 SHA-256 后得到的值前 I 位是 0. 这就是 Proof of work 要做的事。因为计算的过程是很复杂的，Bitcoin 会调整难度，大约需要 10 分钟生成一个 nonce，计算效率提高以后，生成的 0 的个数也会提高。
+
+Proof of work 也就是说运行做坏事，可以造假，但是每次造假都会付出一些代价，当你付出的代价足够高时你就不会考虑做一件坏事了。你在生成 Block 别人也在干活，如果你只干一次就结束，那么耗费你 10 分钟的时间而已，没什么大不了的
+
+**signature 的位置和作用**
+
+```java
+        for (int i = 0; i < tx.getInputs().size(); i++) {
+            Transaction.Input input = tx.getInput(i);
+            UTXO utxo = new UTXO(input.prevTxHash, input.outputIndex);
+            Transaction.Output txOutput = utxoPool.getTxOutput(utxo);
+            if(!Crypto.verifySignature(txOutput.address, tx.getRawDataToSign(i), input.signature)) {
+                return false;
+            }
+        }
+```
+
+这段代码是 普林斯顿大学比特币课程的第一个作业，它用来验证一个 Transaction 的签名是否有效。其中 input 是某个 TX 的第 i 个 input, signature 是生成的签名，getRawDataToSign(i) 被用来签名的原始内容。txOutput.address 是公约，它也是接受者的 public 地址。也就是说，对于一个 TX，找到 input 的来源，就是上一个 TX 的 output -> txOutput, 它的 address 就是本次 TX 的来源。
+
+```
+    public byte[] getRawDataToSign(int index) {
+        // ith input and all outputs
+        ArrayList<Byte> sigData = new ArrayList<Byte>();
+
+        if (index > inputs.size())
+            return null;
+
+        Input in = inputs.get(index);
+        byte[] prevTxHash = in.prevTxHash;
+        ByteBuffer b = ByteBuffer.allocate(Integer.SIZE / 8);
+        b.putInt(in.outputIndex);
+        byte[] outputIndex = b.array();
+
+        // input prevTxHash add to sigData
+        if (prevTxHash != null)
+            for (int i = 0; i < prevTxHash.length; i++)
+                sigData.add(prevTxHash[i]);
+
+        // input index add to sigData
+        for (int i = 0; i < outputIndex.length; i++)
+            sigData.add(outputIndex[i]);
+
+        for (Output op : outputs) {
+            ByteBuffer bo = ByteBuffer.allocate(Double.SIZE / 8);
+            bo.putDouble(op.value); // money number
+            byte[] value = bo.array();
+            byte[] addressBytes = op.address.getEncoded();
+            for (int i = 0; i < value.length; i++)
+                sigData.add(value[i]);
+
+            for (int i = 0; i < addressBytes.length; i++)
+                sigData.add(addressBytes[i]);
+        }
+
+        byte[] sigD = new byte[sigData.size()];
+
+        int i = 0;
+
+        for (Byte sb : sigData)
+            sigD[i++] = sb;
+
+        return sigD;
+    }
+
+```
+
+对第 i 个 input 签名，需要第 i 个 input 信息和所有的 output 信息。而被签好名的信息就保存在 Input.signature 属性中。用它来作为签名。而一个 TX 的 ID 也就是 hash 属性，是这么算的：
+
+```
+    @Override
+    public void finalize() {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(getRawTx());
+            hash = md.digest();
+        } catch (NoSuchAlgorithmException x) {
+            x.printStackTrace(System.err);
+        }
+    }
+
+```
+
+getRawTx 会把 input 的所有 signature 和 output 的所有信息都包含进去，生成一个 256 位的 ID。
+
+**分叉问题**
+
+任何成功计算出那个比目标阈值低的区块头哈希值的矿工，都可以将这整个区块加到区块链中（假设这个区块是有效的）。这些区块通常是通过区块高度来定位的，所谓区块高度是指某个区块与比特币第一个区块（及区块 0，众所周知的创世区块）之间的区块个数。比如，区块 2016 就是第一次难度调整的位置。+
+
+[link]https://0dayzh.gitbooks.io/bitcoin_developer_guide/content/block_height_and_forking.html 
+
+多个区块可以具有同样的区块高度，这在两个或更多的矿工同时创建一个区块时是很常见的。这导致了如上图所示的明显的分叉。+
+
+最终，矿工会产出一个新的区块，它附加在且仅附加在同时被挖出的区块中的一个之后。这样使得某一个分叉比其他分叉更为健壮。假设一个分叉只包括有效的区块，普通的节点总是跟随更长的链，而放弃陈旧的短的分叉。（陈旧的区块常常被叫做孤链，但是该术语也被用于描述确实没有父区块的区块。）
+如果一些矿工有其他的意图，长期的分叉是有可能出现的，比如一些矿工在延续区块链工作，而同时另一些矿工试图通过发起 51％ 攻击篡改交易纪录。+
+
+因为多个区块可以在区块链分叉时具有同样的区块高度，所以区块高度不应该用来做全局的唯一标示符。通常，区块使用区块头的哈希值来做标示（大多数时候是字节倒序的十六进制表示）。
+
+**交易数据**
+
+每一个区块必须包含一笔或者多笔交易。这些交易的第一笔必须是一个 coinbase 交易，也被称作 generation 交易，它包含了这个区块所有花费和奖励（由一个区块的补贴和这个区块任何交易产生的交易费用构成）。旷工把钱给自己成为 coinbase
+
+一个 coinbase 交易的 UTXO 有一个特殊的条件，那就是在之后的 100 个区块内都不能被花费（被用作输入）。这临时性的杜绝了一个矿工花费掉因为分叉而可能被判定为陈旧区块（这个 coinbase 交易因此被销毁掉）中所包含的补贴和交易费。+
+
+例如，如果交易只是连接（没有做哈希运算）在一起，那么具有 5 个交易的 merkle 树应该如下图所示：
+
+```
+       ABCDEEEE .......Merkle 根节点
+      /        \
+   ABCD        EEEE
+  /    \      /
+ AB    CD    EE .......E 与它自身配对
+/  \  /  \  /
+A  B  C  D  E .........交易
+```
+
+merkle 树允许客户端通过一个完整节点从一个区块头中获取其 merkle 根节点和中间哈希值列表来验证一个交易被包含在这个区块中。这个完整节点并不需要是可信的，因为伪造区块头十分困难而中间哈希值是不可能被伪造的，否则验证就会失败。也就说查询的快
+
+例如，要验证交易 D 被加到了区块中，一个 SPV 客户端只需要一份 C，AB 和 EEEE 的副本进而做哈希运算得到 merkle 根节点，客户端并不需要知道任何其他交易的信息。如果这 5 个交易的大小都是一个区块的最大上限，那么下载整个区块需要下载 500,000 个字节，但下载树的哈希值和区块头仅仅需要 140 个字节。+
+
+注意：如果在同一个区块中找到了相同的 txids，那么 merkle 树可能会出现与另一个区块的碰撞，归因于 merkle 树对非平衡的实现（对孤立的哈希值做复制）会将一个区块中一些或全部的重复内容移除掉。从对于单独的交易具有相同的 txid 是不现实的角度来看，merkle 树的实现不会对诚实的软件增加负担，但如果一个区块的无效状态要被缓存那么就必须做检查，否则，一个移除了重复交易的有效区块会因为具有相同的 merkle 根节点和区块哈希而被缓存的无效状态拒绝，导致了编号为 CVE-2012-2459 的安全问题。+
+
+
+**难度值**
+
+难度值（difficulty）是矿工们在挖矿时候的重要参考指标，它决定了矿工大约需要经过多少次哈希运算才能产生一个合法的区块。比特币的区块大约每10分钟生成一个，如果要在不同的全网算力条件下，新区块的产生保持都基本这个速率，难度值必须根据全网算力的变化进行调整。简单地说，难度值被设定在无论挖矿能力如何，新区块产生速率都保持在10分钟一个。
+
+难度的调整是在每个完整节点中独立自动发生的。每2016个区块，所有节点都会按统一的公式自动调整难度，这个公式是由最新2016个区块的花费时长与期望时长（期望时长为20160分钟即两周，是按每10分钟一个区块的产生速率计算出的总时长）比较得出的，根据实际时长与期望时长的比值，进行相应调整（或变难或变易）。也就是说，如果区块产生的速率比10分钟快则增加难度，比10分钟慢则降低难度。
+
+
+**double spending**
+
+下面一节有讨论到 double spending, 这也是最需要也是最难解决的问题。考虑这么一个场景，假如一个矿机作弊，在他的 block chain 中添加了一条假交易，这个交易传给了所有的节点，假消息生效了，系统就被摧毁了，道理哪里不对呢？想象区块链的要求，只要破坏者的算力不超过集群的 51%即可，而该破坏者做的结果发给了整个集群，就被接受了，说明他的算力是集群的 100%，所以不符合实际情况。实际情况是，破坏者在算的时候别的机器也在算，当出现冲突的时候较长的区块链获胜，所以破坏者要不停地算，才能保证自己不被别人比下去，如果它小于所有算力的 50%，那么它永远失败，这样考虑问题时，它实际在于全世界竞争，导致自己最终还是会失败。
+
+**每个 Transaction 必须一次用完**
+
+即便 50 块钱只发出去 30， 剩下 20 也要再发给自己，也就解决了 double spending 的一个计算难的问题（这一块需要扩展）
+
+
 ## Block chain 区块链
 
 区块链由比特币火起来，如今比特币已经超过 5000 人民币一枚了，区块链也被应用到了各个领域。虽然这是一篇对区块链的文章，但是我目前对区块链的理解还是不够，只是对这两天区块链学习的总结。
