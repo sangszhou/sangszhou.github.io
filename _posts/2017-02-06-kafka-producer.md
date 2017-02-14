@@ -5,7 +5,7 @@ categories: [kafka]
 keywords: kafka producer
 ---
 
-Producer有同步发送和异步发送2种策略。在以前的Kafka client api实现中，同步和异步是分开实现的。而在0.9中，同步发送其实是通过异步发送间接实现，其接口如下：
+Producer有同步发送和异步发送2种策略。在以前的Kafka client api实现中，同步和异步是分开实现的。而在0.9中，同步发送其实是通过异步发送间接实现，其接口如下:
 
 ```java
 public class KafkaProducer<K, V> implements Producer<K, V> {
