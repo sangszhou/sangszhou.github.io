@@ -7,6 +7,16 @@ keywords: MapReduce, GFS, Bigtable
 
 ## MapReduce
 
+**FastPath for mapreduce**
+
+1. 在执行任务以前，框架会把输入的文件拆分成 16 ~ 64M 大小的文件
+2. map 函数会生成 R 个文件，对应 R 个 reducer. combine 是 local reducer，它的类型和 reducer 完全一致，可以在 main 函数中声明 combiner
+3. master 会管理整个集群信息，如果 map 失败，则重做 map, 只有当 map 的结果全部结束，才算完
+4. master 会记录 task 的状态，inProgress, finish 等等
+5. master 宕机以后，整个任务全部终止，接下来如何进行要看 client 端的配置
+6. 如果有部分 task 比较慢，则 master 会创建 backup, 正确快速做完
+7. 硬件的假设和GFS相同
+
 MapReduce是将一个大作业拆分为多个小作业的框架（大作业和小作业应该本质是一样的，只是规模不同），用户需要做的就是决定拆成多少份，以及定义作业本身
 
 ![](/images/posts/bigdata/mapreduce.png)
@@ -17,7 +27,7 @@ MapReduce是将一个大作业拆分为多个小作业的框架（大作业和�
 
 1. MapReduce库先把user program的输入文件划分为M份（M为用户定义），每一份通常有16MB到64MB，如图左方所示分成了split0~4；然后使用fork将用户进程拷贝到集群内其它机器上。
 2. user program的副本中有一个称为master，其余称为worker，master是负责调度的，为空闲worker分配作业（Map作业或者Reduce作业），worker的数量也是可以由用户指定的。
-3. 被分配了Map作业的worker，开始读取对应分片的输入数据，Map作业数量是由M决定的，和split一一对应；Map作业从输入数据中抽取出键值对，每一个键值对都作为参数传递给map函数，map函数产生的中间键值对被缓存在内存中。
+3. 被分配了Map作业的worker，开始读取对应分片的输入数据，**Map作业数量是由M决定的**，和split一一对应；Map作业从输入数据中抽取出键值对，每一个键值对都作为参数传递给map函数，map函数产生的中间键值对被缓存在内存中。
 4. 缓存的中间键值对会被定期写入本地磁盘，而且被分为R个区，R的大小是由用户定义的，将来每个区会对应一个Reduce作业；这些中间键值对的位置会被通报给master，master负责将信息转发给Reduce worker。
 5. master通知分配了Reduce作业的worker它负责的分区在什么位置（肯定不止一个地方，每个Map作业产生的中间键值对都可能映射到所有R个不同分区），当Reduce worker把所有它负责的中间键值对都读过来后，先对它们进行排序，使得相同键的键值对聚集在一起。因为不同的键可能会映射到同一个分区也就是同一个Reduce作业（谁让分区少呢），所以排序是必须的。
 6. reduce worker遍历排序后的中间键值对，对于每个唯一的键，都将键与关联的值传递给reduce函数，reduce函数产生的输出会添加到这个分区的输出文件中。
@@ -185,6 +195,10 @@ SSTable的全称是Sorted Strings Table，是一种不可修改的有序的键�
 Chubby是一种高可用的分布式锁服务，Chubby有五个活跃副本，同时只有一个主副本提供服务，副本之间用Paxos算法维持一致性，Chubby提供了一个命名空间（包括一些目录和文件），每个目录和文件就是一个锁，Chubby的客户端必须和Chubby保持会话，客户端的会话若过期则会丢失所有的锁。关于Chubby的详细信息可以看google的另一篇论文：The Chubby lock service for loosely-coupled distributed systems。Chubby用于片定位，片服务器的状态监控，访问控制列表存储等任务。
 
 ### Bigtable集群
+
+FastPath:
+
+和 GFS 的关系。我觉得最大的关系是，BigTable 不再管每个表的备份，表的多个备份完全由 GFS 保证，这样简化了 BigTable 很多工作。
 
 Bigtable集群包括三个主要部分：一个供客户端使用的库，一个主服务器（master server），许多片服务器（tablet server）。
 

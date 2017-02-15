@@ -162,7 +162,7 @@ Storm集群中有两种节点，一种是控制节点(Nimbus节点)，另一种�
 Storm中，Spout和Bolt都是Component。所以，Storm定义了一个名叫IComponent的总接口 
 全家普如下：绿色部分是我们最常用、比较简单的部分。红色部分是与事务相关的 
 
-![](/images/posts/bigdata/storm_topology_archi.png)
+![](/images/posts/bigdata/storm_components.png)
 
 **Spout**
 

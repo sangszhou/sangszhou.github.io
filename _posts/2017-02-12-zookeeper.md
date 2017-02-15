@@ -1,3 +1,10 @@
+---
+layout: post
+title:  "zookeeper"
+date:   "2016-02-14 17:50:00"
+categories: distributed
+keywords: zk, dht, consistent hashing
+---
 
 ## 基础
 
@@ -62,7 +69,7 @@ ZooKeeper提供了方便的API，可以轻松的创建全局唯一的path，这�
 
 除了上面的方式，各个主机还可以通过创建临时顺序ZNode的方式，每个主机会具有不同的后缀，一旦当前的Master宕机之后自动轮训下一个可用机器，而下线的机器也可以随时再次上线创建新序列号的临时顺序节点。
 
-A simple way of doing leader election with ZooKeeper is to use the SEQUENCE|EPHEMERAL flags when creating znodes that represent "proposals" of clients. The idea is to have a znode, say "/election", such that each znode creates a child znode "/election/guid-n_" with both flags SEQUENCE|EPHEMERAL. With the sequence flag, ZooKeeper automatically appends a sequence number that is greater than any one previously appended to a child of "/election". The process that created the znode with the smallest appended sequence number is the leader.
+A simple way of doing leader election with ZooKeeper is to use the `SEQUENCE|EPHEMERAL ` flags when creating znodes that represent "proposals" of clients. The idea is to have a znode, say "/election", such that each znode creates a child znode "/election/guid-n_" with both flags SEQUENCE|EPHEMERAL. With the sequence flag, ZooKeeper automatically appends a sequence number that is greater than any one previously appended to a child of "/election". The process that created the znode with the smallest appended sequence number is the leader.
 
 That's not all, though. It is important to watch for failures of the leader, so that a new client arises as the new leader in the case the current leader fails. A trivial solution is to have all application processes watching upon the current smallest znode, and checking if they are the new leader when the smallest znode goes away (note that the smallest znode will go away if the leader fails because the node is ephemeral). But this causes a herd effect: upon a failure of the current leader, all other processes receive a notification, and execute getChildren on "/election" to obtain the current list of children of "/election". If the number of clients is large, it causes a spike on the number of operations that ZooKeeper servers have to process. To avoid the herd effect, it is sufficient to watch for the next znode down on the sequence of znodes. If a client receives a notification that the znode it is watching is gone, then it becomes the new leader in the case that there is no smaller znode. Note that this avoids the herd effect by not having all clients watching the same znode.
 
