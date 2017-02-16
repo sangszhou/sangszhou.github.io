@@ -92,7 +92,7 @@ class ClassFile {
 }
 
 
-public class ClassFIle {
+public class ClassFile {
   public int highOrder(scala.Function1<java.lang.Object, java.lang.Object>);
     Code:
        0: aload_1
