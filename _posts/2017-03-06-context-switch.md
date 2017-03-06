@@ -1,3 +1,12 @@
+---
+layout: post
+title:  "context switch and nio"
+date:   "2016-02-14 17:50:00"
+categories: nio
+keywords: nio
+---
+
+
 谈谈对上下文切换的理解，我发现几个工作 7，8 年的人， 对 CPU 和线程之间的关系理解不清。下面从几个角度来分析，首先是
 
 1. 什么是上下文切换
