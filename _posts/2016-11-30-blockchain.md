@@ -16,9 +16,9 @@ keywords: blockchain
 
 
 
-```java
+```
 public class Transaction {
-    private byte[] hash;
+	private byte[] hash;
     private ArrayList<Input> inputs;
 
     // outputs 的序号就在这里了
@@ -162,7 +162,7 @@ Proof of work 也就是说运行做坏事，可以造假，但是每次造假都
 
 这段代码是 普林斯顿大学比特币课程的第一个作业，它用来验证一个 Transaction 的签名是否有效。其中 input 是某个 TX 的第 i 个 input, signature 是生成的签名，getRawDataToSign(i) 被用来签名的原始内容。txOutput.address 是公约，它也是接受者的 public 地址。也就是说，对于一个 TX，找到 input 的来源，就是上一个 TX 的 output -> txOutput, 它的 address 就是本次 TX 的来源。
 
-```java
+```
     public byte[] getRawDataToSign(int index) {
         // ith input and all outputs
         ArrayList<Byte> sigData = new ArrayList<Byte>();
@@ -211,7 +211,7 @@ Proof of work 也就是说运行做坏事，可以造假，但是每次造假都
 
 对第 i 个 input 签名，需要第 i 个 input 信息和所有的 output 信息。而被签好名的信息就保存在 Input.signature 属性中。用它来作为签名。而一个 TX 的 ID 也就是 hash 属性，是这么算的：
 
-```java
+```
     @Override
     public void finalize() {
         try {

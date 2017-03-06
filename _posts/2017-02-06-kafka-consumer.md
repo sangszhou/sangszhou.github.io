@@ -16,16 +16,14 @@ public class ConsumerLoop implements Runnable {
   private final List<String> topics;
   private final int id;
 
-  public ConsumerLoop(int id,
-                      String groupId, 
-                      List<String> topics) {
+  public ConsumerLoop(int id, String groupId, List<String> topics) {
     this.id = id;
     this.topics = topics;
     Properties props = new Properties();
     props.put("bootstrap.servers", "localhost:9092");
-    props.put(“group.id”, groupId);
-    props.put(“key.deserializer”, StringDeserializer.class.getName());
-    props.put(“value.deserializer”, StringDeserializer.class.getName());
+    props.put("group.id", groupId);
+    props.put("key.deserializer", StringDeserializer.class.getName());
+    props.put("value.deserializer", StringDeserializer.class.getName());
     this.consumer = new KafkaConsumer<>(props);
   }
  
@@ -36,6 +34,7 @@ public class ConsumerLoop implements Runnable {
 
       while (true) {
         ConsumerRecords<String, String> records = consumer.poll(Long.MAX_VALUE);
+        
         for (ConsumerRecord<String, String> record : records) {
           Map<String, Object> data = new HashMap<>();
           data.put("partition", record.partition());
@@ -65,6 +64,8 @@ public class ConsumerLoop implements Runnable {
 # bin/kafka-verifiable-producer.sh --topic consumer-tutorial --max-messages 200000 --broker-list localhost:9092
 ```
 
+默认情况下，topic 会自动创建，但是第一次发送到为创建 topic 的消息会丢失。
+
 ```java
 public static void main(String[] args) { 
   int numConsumers = 3;
@@ -85,7 +86,9 @@ public static void main(String[] args) {
       for (ConsumerLoop consumer : consumers) {
         consumer.shutdown();
       } 
+      
       executor.shutdown();
+      
       try {
         executor.awaitTermination(5000, TimeUnit.MILLISECONDS);
       } catch (InterruptedException e) {

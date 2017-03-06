@@ -21,6 +21,55 @@ keywords: java, concurrent
 
 5: Synchronized 的实现原理, 他和 instance 元数据之间的关系
 
+## 读者写者问题
+
+```java
+public class ReaderAndWrite {
+    static Semaphore mutext = new Semaphore(1);
+    static Semaphore w = new Semaphore(1);
+    int readCnt = 0;
+
+    class Reader implements Runnable {
+        public void run() {
+            try {
+                mutext.acquire();
+                readCnt++;
+                if(readCnt == 1)
+                    w.acquire();
+                mutext.release();
+
+                //read something
+                System.out.println(getName() + " is reading");
+                
+                mutext.acquire();
+                readCnt--;
+                if(readCnt == 0)
+                    w.release();
+                mutex.release();
+            } catch(InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    class Writer implements Runnable {
+        public void run() {
+            try {
+                w.acquire();
+                data++;
+                println();
+                w.release();
+            } catch(InterruptedException e) {
+                e.printlnStackTrace();
+            }
+        }
+    }
+
+}
+```
+
+
 ## 生产者消费者问题
 
 生产者消费者问题是研究多线程程序时绕不开的经典问题之一，它描述是有一块缓冲区作为仓库，生产者可以将产品放入仓库，
@@ -464,11 +513,3 @@ objectref, as follows:
 > enter the monitor are allowed to attempt to do so.
   
 通过这两段描述，我们应该能很清楚的看出Synchronized的实现原理，Synchronized的语义底层是通过一个monitor的对象来完成，其实wait/notify等方法也依赖于monitor对象，这就是为什么只有在同步的块或者方法中才能调用wait/notify等方法，否则会抛出java.lang.IllegalMonitorStateException的异常的原因。
-
-
-
-### 读写者问题 @todo
-
-读者可以并发读, 写着只能同时写一个
-
-### scala 实现读写者问题, 生产者消费者问题
