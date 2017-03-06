@@ -5,6 +5,303 @@ categories: [spring]
 keywords: spring
 ---
 
+Update:
+
+使用 aspectj 来完成 AOP 会用到 AnnotationAwareAspectJAutoProxyCreator
+
+上面配置文件中的 AnnotationAwareAspectJAutoProxyCreator 是一个 Bean 后处理器（BeanPostProcessor），该 Bean 后处理器将会为容器中 Bean 生成 AOP 代理，当启动了 @AspectJ 支持后，只要我们在 Spring 容器中配置一个带 @Aspect 注释的 Bean，Spring 将会自动识别该 Bean，并将该 Bean 作为方面 Bean 处理。
+
+
+### Spring AOP 原理
+
+首先整个SpringAOP的分两大过程：
+
+第一个过程：根据xml文件或者注解中配置的拦截信息，生成相应的代理对象，这个代理对象包含了对应的拦截器。 
+
+第二个过程：执行所拦截的方法时，就是调用代理对象的执行逻辑，完成各种拦截。 
+
+对第一个过程先做简单概述，如果拦截的类的对应方法是接口方法，则使用JDK的Proxy进行代理对象的创建否则使用CGLIB进行代理对象的创建。 
+
+### AOP 如何生成代理对象
+
+```java
+<bean id="aspectBean" class="com.lg.aop.TestAspect" />   
+      
+    <aop:config expose-proxy="false" proxy-target-class="false">    
+        <aop:aspect id="TestAspect" ref="aspectBean">    
+              
+            <aop:pointcut id="businessService1"    
+                expression="execution(* com.lg.aop.service.*.bar*(..))" />    
+            <aop:pointcut id="businessService2"    
+                expression="execution(* com.lg.aop.service.*.foo*(..))" />    
+            <aop:before pointcut-ref="businessService1" method="doBefore" />    
+            <aop:after pointcut-ref="businessService2" method="doAfter"/>    
+            <aop:around pointcut-ref="businessService2" method="doAround"/>  
+            <aop:after-throwing pointcut-ref="businessService1" method="doThrowing" throwing="ex"/>    
+        </aop:aspect>    
+    </aop:config>    
+```
+
+还是要从对xml中的配置<aop:config>标签的解析来入手。同样是从标签解析接口开始，即找BeanDefinitionParser的实现类，最终我们会找到AspectJAutoProxyBeanDefinitionParser是用来处理aspectj-autoproxy标签的，而ConfigBeanDefinitionParser则是用来处理aop:config标签的。看下ConfigBeanDefinitionParser的解析过程： 
+
+```java
+public BeanDefinition parse(Element element, ParserContext parserContext) {  
+        CompositeComponentDefinition compositeDef =  
+                new CompositeComponentDefinition(element.getTagName(), parserContext.extractSource(element));  
+        parserContext.pushContainingComponent(compositeDef);  
+  
+        configureAutoProxyCreator(parserContext, element);  
+  
+        List<Element> childElts = DomUtils.getChildElements(element);  
+        for (Element elt: childElts) {  
+            String localName = parserContext.getDelegate().getLocalName(elt);  
+            if (POINTCUT.equals(localName)) {  
+                parsePointcut(elt, parserContext);  
+            }  
+            else if (ADVISOR.equals(localName)) {  
+                parseAdvisor(elt, parserContext);  
+            }  
+            else if (ASPECT.equals(localName)) {  
+                parseAspect(elt, parserContext);  
+            }  
+        }  
+  
+        parserContext.popAndRegisterContainingComponent();  
+        return null;  
+    }  
+```
+
+这里主要注册一些Advisor，同时注册了一个AspectJAwareAdvisorAutoProxyCreator，并且设置xml中所配置的proxy-target-class和expose-proxy到它的属性中。AspectJAwareAdvisorAutoProxyCreator本身存储着配置信息，然后使用这些配置创建出来代理对象，在它的父类AbstractAutoProxyCreator的createProxy方法中： 
+
+```java
+Object createProxy(Class<?> beanClass, String beanName, Object[] specificInterceptors, TargetSource targetSource) {  
+  
+        ProxyFactory proxyFactory = new ProxyFactory();  
+        // Copy our properties (proxyTargetClass etc) inherited from ProxyConfig.  
+//重点1  
+        proxyFactory.copyFrom(this);  
+  
+//重点2  
+        if (!proxyFactory.isProxyTargetClass()) {  
+            if (shouldProxyTargetClass(beanClass, beanName)) {  
+                proxyFactory.setProxyTargetClass(true);  
+            }  
+            else {  
+                evaluateProxyInterfaces(beanClass, proxyFactory);  
+            }  
+        }  
+  
+        Advisor[] advisors = buildAdvisors(beanName, specificInterceptors);  
+        for (Advisor advisor : advisors) {  
+            proxyFactory.addAdvisor(advisor);  
+        }  
+  
+        proxyFactory.setTargetSource(targetSource);  
+        customizeProxyFactory(proxyFactory);  
+  
+        proxyFactory.setFrozen(this.freezeProxy);  
+        if (advisorsPreFiltered()) {  
+            proxyFactory.setPreFiltered(true);  
+        }  
+//重点3  
+        return proxyFactory.getProxy(this.proxyClassLoader);  
+    }  
+```
+
+这个类有很多子类，AnnotationBasedxxx, Default, Aspectjxxx 等等很多子类实现
+
+
+```java
+public void doAfter(JoinPoint jp) {    
+        System.out.println("log Ending method: "    
+                + jp.getTarget().getClass().getName() + "."    
+                + jp.getSignature().getName());    
+    }    
+    
+    public Object doAround(ProceedingJoinPoint pjp) throws Throwable {    
+        long time = System.currentTimeMillis();    
+        Object retVal = pjp.proceed();    
+        time = System.currentTimeMillis() - time;    
+        System.out.println("process time: " + time + " ms");    
+        return retVal;    
+    }    
+    
+    public void doBefore(JoinPoint jp) {    
+        System.out.println("log Begining method: "    
+                + jp.getTarget().getClass().getName() + "."    
+                + jp.getSignature().getName());    
+    }    
+    
+    public void doThrowing(JoinPoint jp, Throwable ex) {    
+        System.out.println("method " + jp.getTarget().getClass().getName()    
+                + "." + jp.getSignature().getName() + " throw exception");    
+        System.out.println(ex.getMessage());    
+    }  
+
+
+<aop:config>    
+        <aop:aspect id="TestAspect" ref="aspectBean">    
+              
+            <!-- 配置com.spring.service包下所有类或接口的所有方法   -->  
+            <aop:pointcut id="businessService"    
+                expression="execution(* com.lg.aop.service.*.*(..))" />    
+            <aop:before pointcut-ref="businessService" method="doBefore"/>    
+            <aop:after pointcut-ref="businessService" method="doAfter"/>    
+            <aop:around pointcut-ref="businessService" method="doAround"/>  
+            <aop:after-throwing pointcut-ref="businessService" method="doThrowing" throwing="ex"/>    
+        </aop:aspect>    
+    </aop:config>    
+
+@RunWith(SpringJUnit4ClassRunner.class)  
+@ContextConfiguration(locations = "file:src/main/webapp/WEB-INF/mvc-servlet.xml")  
+public class AOPTest {  
+  
+    @Autowired  
+    private AService aService;  
+    @Autowired  
+    private BServiceImpl bServiceImpl;  
+      
+    @Test  
+    public void testAOP(){  
+        aService.barA();  
+        bServiceImpl.fooB();  
+    }        
+}  
+
+log Begining method: com.lg.aop.service.impl.AServiceImpl.barA  
+AServiceImpl.barA()  
+process time: 0 ms  
+log Ending method: com.lg.aop.service.impl.AServiceImpl.barA  
+log Begining method: com.lg.aop.service.BServiceImpl.fooB  
+BServiceImpl.fooB()  
+process time: 12 ms  
+log Ending method: com.lg.aop.service.BServiceImpl.fooB  
+```
+
+AdvisedSupport有两个重要的内容：TargetSource和List<Advisor> advisors和List<Class<?>> interfaces。 
+
+```java
+final class JdkDynamicAopProxy implements AopProxy, InvocationHandler, Serializable {  
+    /** Config used to configure this proxy */  
+    private final AdvisedSupport advised;  
+  
+    private boolean equalsDefined;  
+    private boolean hashCodeDefined;  
+        //略  
+}  
+```
+
+接口Advised：主要包含TargetSource和List<Advisor> advisors和List<Class<?>> interface 
+ProxyConfig：则是对要产生的代理对象的一些配置，如下： 
+
+```java
+public class ProxyConfig implements Serializable {  
+  
+    /** use serialVersionUID from Spring 1.2 for interoperability */  
+    private static final long serialVersionUID = -8409359707199703185L;  
+  
+  
+    private boolean proxyTargetClass = false;  
+  
+    private boolean optimize = false;  
+  
+    boolean opaque = false;  
+  
+    boolean exposeProxy = false;  
+  
+    private boolean frozen = false;  
+}  
+```
+
+```java
+public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {  
+        MethodInvocation invocation;  
+        Object oldProxy = null;  
+        boolean setProxyContext = false;  
+  
+        TargetSource targetSource = this.advised.targetSource;  
+        Class<?> targetClass = null;  
+        Object target = null;  
+  
+        try {  
+            if (!this.equalsDefined && AopUtils.isEqualsMethod(method)) {  
+                // The target does not implement the equals(Object) method itself.  
+                return equals(args[0]);  
+            }  
+            if (!this.hashCodeDefined && AopUtils.isHashCodeMethod(method)) {  
+                // The target does not implement the hashCode() method itself.  
+                return hashCode();  
+            }  
+            if (!this.advised.opaque && method.getDeclaringClass().isInterface() &&  
+                    method.getDeclaringClass().isAssignableFrom(Advised.class)) {  
+                // Service invocations on ProxyConfig with the proxy config...  
+                return AopUtils.invokeJoinpointUsingReflection(this.advised, method, args);  
+            }  
+            
+            Object retVal;  
+            
+// 我们关注的重点 1  
+            if (this.advised.exposeProxy) {  
+                // Make invocation available if necessary.  
+                oldProxy = AopContext.setCurrentProxy(proxy);  
+                setProxyContext = true;  
+            }  
+  
+            // May be null. Get as late as possible to minimize the time we "own" the target,  
+            // in case it comes from a pool.  
+            target = targetSource.getTarget();  
+            if (target != null) {  
+                targetClass = target.getClass();  
+            }  
+//关注的重点2  
+            // Get the interception chain for this method.  
+            List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);  
+  
+            // Check whether we have any advice. If we don't, we can fallback on direct  
+            // reflective invocation of the target, and avoid creating a MethodInvocation.  
+            if (chain.isEmpty()) {  
+                // We can skip creating a MethodInvocation: just invoke the target directly  
+                // Note that the final invoker must be an InvokerInterceptor so we know it does  
+                // nothing but a reflective operation on the target, and no hot swapping or fancy proxying.  
+//关注的重点3  
+                retVal = AopUtils.invokeJoinpointUsingReflection(target, method, args);  
+            }  
+            else {  
+//关注的重点4  
+                // We need to create a method invocation...  
+                invocation = new ReflectiveMethodInvocation(proxy, target, method, args, targetClass, chain);  
+                // Proceed to the joinpoint through the interceptor chain.  
+                retVal = invocation.proceed();  
+            }  
+  
+            // Massage return value if necessary.  
+            Class<?> returnType = method.getReturnType();  
+            if (retVal != null && retVal == target && returnType.isInstance(proxy) &&  
+                    !RawTargetAccess.class.isAssignableFrom(method.getDeclaringClass())) {  
+                // Special case: it returned "this" and the return type of the method  
+                // is type-compatible. Note that we can't help if the target sets  
+                // a reference to itself in another returned object.  
+                retVal = proxy;  
+            } else if (retVal == null && returnType != Void.TYPE && returnType.isPrimitive()) {  
+                throw new AopInvocationException("Null return value from advice does not match primitive return type for: " + method);  
+            }  
+            return retVal;  
+        }  
+        finally {  
+            if (target != null && !targetSource.isStatic()) {  
+                // Must have come from TargetSource.  
+                targetSource.releaseTarget(target);  
+            }  
+            if (setProxyContext) {  
+                // Restore old proxy.  
+                AopContext.setCurrentProxy(oldProxy);  
+            }  
+        }  
+    }  
+```
+
+
+
 ### 什么是 AOP 更新
 
 AOP 的核心思想就是“将应用程序中的核心逻辑同对其提供支持的通用服务进行分离。” 这些通用服务可能是日志，权限认证等等。

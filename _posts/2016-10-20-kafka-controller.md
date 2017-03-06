@@ -6,6 +6,10 @@ categories: kafka
 keywords: kafka
 ---
 
+Update:
+
+缺少对内部数据结构的详细介绍，应该看更多的 Post. 比如 Log 的组织结构什么的。source code 1,2,3 非常不错
+
 ### Partition
 
 Partition 包含了很多的元素, 包括比较重要的 ISR, AR, replicaManager 和 LogManager 等等

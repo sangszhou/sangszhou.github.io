@@ -1,3 +1,11 @@
+---
+layout: post
+title:  "kafka server"
+date:   "2016-02-14 17:50:00"
+categories: kafka
+keywords: zk, dht, consistent hashing
+---
+
 ### Controller
 
 为了减小Zookeeper的压力，同时也降低整个分布式系统的复杂度，Kafka引入了一个“中央控制器“，也就是Controller。 

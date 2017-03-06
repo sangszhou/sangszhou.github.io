@@ -1,3 +1,11 @@
+---
+layout: post
+title:  "zookeeper"
+date:   "2016-02-14 17:50:00"
+categories: distributed
+keywords: zk, dht, consistent hashing
+---
+
 
 ## 基础
 
@@ -6,6 +14,337 @@
 1. EPHEMERAL
 2. REGULAR
 3. SEQUENCE
+
+## 使用
+
+**CRUD 操作**
+
+```java
+public class CRUDExample {
+    public static void create(CuratorFramework client, String path, byte[] payload) throws Exception {
+        // this will create the given ZNode with the given data
+        client.create().forPath(path, payload);
+    }
+
+    public static void createEphemeral(CuratorFramework client, String path, byte[] payload) throws Exception {
+        // this will create the given EPHEMERAL ZNode with the given data
+        client.create().withMode(CreateMode.EPHEMERAL).forPath(path, payload);
+    }
+
+    public static String createEphemeralSequential(CuratorFramework client, String path, byte[] payload) throws Exception {
+        // this will create the given EPHEMERAL-SEQUENTIAL ZNode with the given
+        // data using Curator protection.
+        /*
+         * Protection Mode: It turns out there is an edge case that exists when
+		 * creating sequential-ephemeral nodes. The creation can succeed on the
+		 * server, but the server can crash before the created node name is
+		 * returned to the client. However, the ZK session is still valid so the
+		 * ephemeral node is not deleted. Thus, there is no way for the client
+		 * to determine what node was created for them. Even without
+		 * sequential-ephemeral, however, the create can succeed on the sever
+		 * but the client (for various reasons) will not know it. Putting the
+		 * create builder into protection mode works around this. The name of
+		 * the node that is created is prefixed with a GUID. If node creation
+		 * fails the normal retry mechanism will occur. On the retry, the parent
+		 * path is first searched for a node that has the GUID in it. If that
+		 * node is found, it is assumed to be the lost node that was
+		 * successfully created on the first try and is returned to the caller.
+		 */
+        return client.create().withProtection().withMode(CreateMode.EPHEMERAL_SEQUENTIAL).forPath(path, payload);
+    }
+
+    // what if node is not available?
+    public static void setData(CuratorFramework client, String path, byte[] payload) throws Exception {
+        // set data for the given node
+        client.setData().forPath(path, payload);
+    }
+
+    public static void setDataAsync(CuratorFramework client, String path, byte[] payload) throws Exception {
+        // this is one method of getting event/async notifications
+        CuratorListener listener = new CuratorListener() {
+            @Override
+            public void eventReceived(CuratorFramework client, CuratorEvent event) throws Exception {
+                // examine event for details
+            }
+        };
+        client.getCuratorListenable().addListener(listener);
+        // set data for the given node asynchronously. The completion
+        // notification
+        // is done via the CuratorListener.
+        client.setData().inBackground().forPath(path, payload);
+    }
+
+
+    public static void setDataAsyncWithCallback(CuratorFramework client, BackgroundCallback callback, String path, byte[] payload) throws Exception {
+        // this is another method of getting notification of an async completion
+        client.setData().inBackground(callback).forPath(path, payload);
+    }
+
+    public static void delete(CuratorFramework client, String path) throws Exception {
+        // delete the given node
+        client.delete().forPath(path);
+    }
+
+
+    public static void guaranteedDelete(CuratorFramework client, String path) throws Exception {
+        // delete the given node and guarantee that it completes
+        /*
+		 * Guaranteed Delete Solves this edge case: deleting a node can fail due
+		 * to connection issues. Further, if the node was ephemeral, the node
+		 * will not get auto-deleted as the session is still valid. This can
+		 * wreak havoc with lock implementations. When guaranteed is set,
+		 * Curator will record failed node deletions and attempt to delete them
+		 * in the background until successful. NOTE: you will still get an
+		 * exception when the deletion fails. But, you can be assured that as
+		 * long as the CuratorFramework instance is open attempts will be made
+		 * to delete the node.
+		 */
+        client.delete().guaranteed().forPath(path);
+    }
+
+    public static List<String> watchedGetChildren(CuratorFramework client, String path) throws Exception {
+        /**
+         * Get children and set a watcher on the node. The watcher notification
+         * will come through the CuratorListener (see setDataAsync() above).
+         */
+        return client.getChildren().watched().forPath(path);
+    }
+
+    public static List<String> watchedGetChildren(CuratorFramework client, String path, Watcher watcher) throws Exception {
+        /**
+         * Get children and set the given watcher on the node.
+         */
+        return client.getChildren().usingWatcher(watcher).forPath(path);
+    }
+}
+```
+
+可以利用ZooKeeper在集群的各个节点之间缓存数据。 每个节点都可以得到最新的缓存的数据。 Curator提供了三种类型的缓存方式：Path Cache,Node Cache 和Tree Cache。
+
+**Path Cache**
+
+Path Cache 用来监控一个 ZNode 的子节点. 当一个子节点增加, 更新, 删除时, Path Cache 会改变它的状态， 会包含最新的子节点， 子节点的数据和状态
+这也正如它的名字表示的那样， 那监控 path
+
+实际使用时会涉及到四个类:
+
+1. PathChildrenCache
+2. PathChildrenCacheEvent
+3. PathChildrenCacheListener
+4. ChildData
+
+通过下面的构造函数创建Path Cache:
+
+```
+public PathChildrenCache(CuratorFramework client, String path, boolean cacheData)
+```
+
+想使用cache，必须调用它的start方法，不用之后调用close方法。start有两个， 其中一个可以传入StartMode，用来为初始的cache设置暖场方式(warm)：
+                                     
+1. NORMAL: 初始时为空。
+2. BUILD_INITIAL_CACHE: 在这个方法返回之前调用rebuild()。
+3. POST_INITIALIZED_EVENT: 当Cache初始化数据后发送一个PathChildrenCacheEvent.Type#INITIALIZED事件
+
+```java
+ * note:
+ * create path before running the method if using real zookeeper
+ */
+public class PathCacheTest {
+    private static final String PATH = "/example/cache";
+
+    public static void main(String[] args) throws Exception {
+        TestingServer zkServer = new TestingServer();
+        CuratorFramework client = CuratorFrameworkFactory.newClient(zkServer.getConnectString(),
+                new ExponentialBackoffRetry(1000, 3));
+        client.start();
+
+        PathChildrenCache cache = new PathChildrenCache(client, PATH, true);
+        cache.start();
+
+        PathChildrenCacheListener cacheListener = new PathChildrenCacheListener() {
+            @Override
+            public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
+                System.out.println("事件类型：" + event.getType());
+                System.out.println("path: " + event.getData().getPath());
+                System.out.println("节点数据：" + event.getData().getPath() + " = " + new String(event.getData().getData()));
+            }
+        };
+
+        cache.getListenable().addListener(cacheListener);
+
+        client.create().creatingParentsIfNeeded().forPath("/example/cache/test01", "01".getBytes());
+        Thread.sleep(10);
+
+        client.create().forPath("/example/cache/test02", "02".getBytes());
+        Thread.sleep(10);
+
+        client.setData().forPath("/example/cache/test01", "01_V2".getBytes());
+        Thread.sleep(10);
+
+        for (ChildData data : cache.getCurrentData()) {
+            System.out.println("getCurrentData:" + data.getPath() + " = " + new String(data.getData()));
+        }
+
+        client.delete().forPath("/example/cache/test01");
+        Thread.sleep(10);
+
+        client.delete().forPath("/example/cache/test02");
+        Thread.sleep(1000 * 5);
+
+        cache.close();
+        client.close();
+        System.out.println("OK!");
+    }
+}
+```
+
+**Node Cache**
+
+Path Cache用来监控一个ZNode. 当节点的数据修改或者删除时，Node Cache能更新它的状态包含最新的改变。
+
+1. NodeCache
+2. NodeCacheListener
+3. ChildData
+
+想使用cache，依然要调用它的start方法，不用之后调用close方法。
+
+getCurrentData() 将得到节点当前的状态，通过它的状态可以得到当前的值。
+可以使用 `public void addListener(NodeCacheListener listener)` 监控节点状态的改变。
+
+下面是一个实际的测试
+
+```java
+/**
+ * Created by xinszhou on 19/01/2017.
+ *
+ * @fixme Not working 必须得把 Thread.sleep 事件延长才能看到效果
+ */
+public class NodeCacheTest {
+        private static final String PATH = "/example/cache";
+
+        public static void main(String[] args) throws Exception {
+            TestingServer zkServer = new TestingServer();
+
+            CuratorFramework client = CuratorFrameworkFactory.newClient(zkServer.getConnectString(),
+                    new ExponentialBackoffRetry(1000, 3));
+            client.start();
+
+            final NodeCache cache = new NodeCache(client, PATH);
+            cache.start();
+
+            NodeCacheListener listener = new NodeCacheListener() {
+                @Override
+                public void nodeChanged() throws Exception {
+                    ChildData data = cache.getCurrentData();
+                    if (null != data) {
+                        System.out.println("节点数据：" + new String(cache.getCurrentData().getData()));
+                    } else {
+                        System.out.println("节点被删除!");
+                    }
+                }
+            };
+
+            cache.getListenable().addListener(listener);
+
+            client.create().creatingParentsIfNeeded().forPath(PATH, "01".getBytes());
+            Thread.sleep(1000);
+
+            client.setData().forPath(PATH, "02".getBytes());
+            Thread.sleep(1000);
+
+            client.delete().deletingChildrenIfNeeded().forPath(PATH);
+            Thread.sleep(1000 * 2);
+
+            cache.close();
+            client.close();
+
+            System.out.println("OK!");
+        }
+}
+```
+
+**Tree Node**
+
+这种类型的即可以监控节点的状态，还监控节点的子节点的状态， 类似上面两种cache的组合。 这也就是Tree的概念。 它监控整个树中节点的状态。
+
+1. TreeCache
+2. TreeCacheListener
+3. TreeCacheEvent
+4. ChildData
+
+```java
+public class TreeCacheExample {
+    private static final String PATH = "/example/cache";
+
+    public static void main(String[] args) throws Exception {
+        TestingServer zkServer = new TestingServer();
+
+        CuratorFramework client = CuratorFrameworkFactory.newClient(zkServer.getConnectString(), new ExponentialBackoffRetry(1000, 3));
+
+        client.start();
+        TreeCache cache = new TreeCache(client, PATH);
+        cache.start();
+
+        TreeCacheListener listener = new TreeCacheListener() {
+            @Override
+            public void childEvent(CuratorFramework client, TreeCacheEvent event) throws Exception {
+                System.out.println("事件类型：" + event.getType() + " | 路径：" + event.getData().getPath());
+                event.getData().getData();
+                // 既有 data: byte[] 又有 type: Node_Add, Node_Removed, Node_Updated
+            }
+        };
+
+        cache.getListenable().addListener(listener);
+        client.create().creatingParentsIfNeeded().forPath("/example/cache/test01/child01");
+        client.setData().forPath("/example/cache/test01", "12345".getBytes());
+        client.delete().deletingChildrenIfNeeded().forPath(PATH);
+        Thread.sleep(1000 * 2);
+        cache.close();
+        client.close();
+        System.out.println("OK!");
+    }
+}
+```
+
+
+
+```java
+/**
+ * Listener for PathChildrenCache changes
+ */
+public interface PathChildrenCacheListener
+{
+    /**
+     * Called when a change has occurred
+     *
+     * @param client the client
+     * @param event describes the change
+     * @throws Exception errors
+     */
+    public void     childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception;
+}
+
+public interface TreeCacheListener
+{
+    /**
+     * Called when a change has occurred
+     *
+     * @param client the client
+     * @param event  describes the change
+     * @throws Exception errors
+     */
+    public void childEvent(CuratorFramework client, TreeCacheEvent event) throws Exception;
+}
+
+public interface NodeCacheListener
+{
+    /**
+     * Called when a change has occurred
+     */
+    public void     nodeChanged() throws Exception;
+}
+```
+
 
 
 ## 应用
@@ -62,7 +401,7 @@ ZooKeeper提供了方便的API，可以轻松的创建全局唯一的path，这�
 
 除了上面的方式，各个主机还可以通过创建临时顺序ZNode的方式，每个主机会具有不同的后缀，一旦当前的Master宕机之后自动轮训下一个可用机器，而下线的机器也可以随时再次上线创建新序列号的临时顺序节点。
 
-A simple way of doing leader election with ZooKeeper is to use the SEQUENCE|EPHEMERAL flags when creating znodes that represent "proposals" of clients. The idea is to have a znode, say "/election", such that each znode creates a child znode "/election/guid-n_" with both flags SEQUENCE|EPHEMERAL. With the sequence flag, ZooKeeper automatically appends a sequence number that is greater than any one previously appended to a child of "/election". The process that created the znode with the smallest appended sequence number is the leader.
+A simple way of doing leader election with ZooKeeper is to use the `SEQUENCE|EPHEMERAL ` flags when creating znodes that represent "proposals" of clients. The idea is to have a znode, say "/election", such that each znode creates a child znode "/election/guid-n_" with both flags SEQUENCE|EPHEMERAL. With the sequence flag, ZooKeeper automatically appends a sequence number that is greater than any one previously appended to a child of "/election". The process that created the znode with the smallest appended sequence number is the leader.
 
 That's not all, though. It is important to watch for failures of the leader, so that a new client arises as the new leader in the case the current leader fails. A trivial solution is to have all application processes watching upon the current smallest znode, and checking if they are the new leader when the smallest znode goes away (note that the smallest znode will go away if the leader fails because the node is ephemeral). But this causes a herd effect: upon a failure of the current leader, all other processes receive a notification, and execute getChildren on "/election" to obtain the current list of children of "/election". If the number of clients is large, it causes a spike on the number of operations that ZooKeeper servers have to process. To avoid the herd effect, it is sufficient to watch for the next znode down on the sequence of znodes. If a client receives a notification that the znode it is watching is gone, then it becomes the new leader in the case that there is no smaller znode. Note that this avoids the herd effect by not having all clients watching the same znode.
 

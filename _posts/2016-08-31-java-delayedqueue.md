@@ -6,6 +6,11 @@ categories: java
 keywords: java, concurrent, blockingQueue
 ---
 
+### Update
+2017年03月02日 星期四
+
+await 是用 condition 实现的，而不是 unsafe.parkNano()。虽然，底层 Condition 也是靠 Unsafe.ParkNano 实现的
+
 @todo update
 
 1. poll 应该放到 offer 前面写
