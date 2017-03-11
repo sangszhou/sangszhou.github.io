@@ -253,3 +253,136 @@ class FastLeaderElection {
 ```
 
 整体来看，LeaderElection 还是比较简单的
+
+### QuorumCnxnManager
+
+```java
+/**
+ * This class implements a connection manager for leader election using TCP. It
+ * maintains one connection for every pair of servers. The tricky part is to
+ * guarantee that there is exactly one connection for every pair of servers that
+ * are operating correctly and that can communicate over the network.
+ * 
+ * If two servers try to start a connection concurrently, then the connection
+ * manager uses a very simple tie-breaking mechanism to decide which connection
+ * to drop based on the IP addressed of the two parties. 
+ * 
+ * For every peer, the manager maintains a queue of messages to send. If the
+ * connection to any particular peer drops, then the sender thread puts the
+ * message back on the list. As this implementation currently uses a queue
+ * implementation to maintain messages to send to another peer, we add the
+ * message to the tail of the queue, thus changing the order of messages.
+ * Although this is not a problem for the leader election, it could be a problem
+ * when consolidating peer communication. This is to be verified, though.
+ * 
+ */
+```
+
+下面是创建 connection 的过程
+
+```java
+public class QuorumCnxManager {
+    // sender worker 有 map, 但是 receive worker 却没有 Map
+    final ConcurrentHashMap<Long, SendWorker> senderWorkerMap;
+    final ConcurrentHashMap<Long, ArrayBlockingQueue<ByteBuffer>> queueSendMap;
+    final ConcurrentHashMap<Long, ByteBuffer> lastMessageSent;
+    
+    
+    public final ArrayBlockingQueue<Message> recvQueue;
+
+// public 的连接方法，接下来回一个的连接
+    public void connectAll(){ // called by lookupLeader()
+        long sid; 
+        for(Enumeration<Long> en = queueSendMap.keys();
+            en.hasMoreElements();){
+            sid = en.nextElement();
+            connectOne(sid);
+        }      
+    }        
+    
+    synchronized private boolean connectOne(long sid, InetSocketAddress electionAddr) {
+        Socket sock = null;
+     
+        LOG.debug("Opening channel to server " + sid);
+        sock = new Socket();
+        setSockOpts(sock);
+        sock.connect(electionAddr, cnxTO);
+        
+        initiateConnection(sock, sid);
+        return true;        
+    }
+    
+    public boolean initiateConnection(Socket sock, Long sid) {
+        BufferedOutputStream buf = new BufferedOutputStream(sock.getOutputStream());
+        DataOutputStream dout = new DataOutputStream(buf);
+        
+        dout.writeLong(PROTOCOL_VERSION);
+        dout.writeLong(self.getId());
+        String addr = self.getElectionAddress().getHostString() + ":" + self.getElectionAddress().getPort();
+        byte[] addr_bytes = addr.getBytes();
+        dout.writeInt(addr_bytes.length);
+        dout.write(addr_bytes);
+        dout.flush();
+        
+        // If lost the challenge, then drop the new connection
+        if (sid > self.getId()) {
+            closeSocket(sock);
+        } else {
+            SendWorker sw = new SendWorker(sock, sid);
+            RecvWorker rw = new RecvWorker(sock, sid, sw);
+            sw.setRecv(rw);
+            SendWorker vsw = senderWorkerMap.get(sid);
+            senderWorkerMap.put(sid, sw);
+            queueSendMap.putIfAbsent(sid, new ArrayBlockingQueue<ByteBuffer>(SEND_CAPACITY));
+            sw.start();
+            rw.start();
+        }
+        return true;
+    }
+    
+    // Thread to listen on some port
+    public class Listener extends ZooKeeperThread {
+        volatile ServerSocket ss = null;
+        public void run() {
+            while((!shutdown) && (numRetries < 3)){
+                ss = new ServerSocket();
+                ss.setReuseAddress(true);
+                ss.bind(addr);
+                while (!shutdown) {
+                    client = ss.accept();
+                    setSockOpts(client);
+                    receiveConnection(client);
+                    numRetries = 0;
+                }
+            }
+        }
+    }
+    
+    public void receiveConnection(Socket sock) {
+        DataInputStream din = new DataInputStream(sock.getInputStream());
+        protocolVersion = din.readLong();
+        sid = protocolVersion;
+        
+        if (sid < self.getId()) {
+            SendWorker sw = senderWorkerMap.get(sid);
+            /*
+             * This replica might still believe that the connection to sid is
+             * up, so we have to shut down the workers before trying to open a
+             * new connection.
+             */            
+            if (sw != null) {
+                sw.finish();
+            }
+        } else { // Otherwise start worker threads to receive data.
+            SendWorker sw = new SendWorker(sock, sid);
+            RecvWorker rw = new RecvWorker(sock, sid, sw);
+            sw.setRecv(rw);
+            SendWorker vsw = senderWorkerMap.get(sid);
+            senderWorkerMap.put(sid, sw);
+            queueSendMap.putIfAbsent(sid, new ArrayBlockingQueue<ByteBuffer>(SEND_CAPACITY));
+        }
+    }
+}
+```
+
+对创建 connection 这一块并不太明白。应该是 sid 小的机器作为 server, sid 大的作为 client 来交互信息，这样对 SendWorker, RecvWorker 的意义是什么呢
